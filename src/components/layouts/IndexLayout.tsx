@@ -15,9 +15,7 @@ function IndexLayout() {
           </div>
 
             <div className="flex items-center pr-15">
-              <Link to={{
-                pathname: "/login"
-              }}>Login</Link>
+              
             </div>
 
         </div>

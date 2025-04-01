@@ -1,22 +1,28 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { Auth0Provider } from '@auth0/auth0-react';
+import App from './App.tsx';
 import './index.css'
-import App from './App.tsx'
-import { HashRouter, Route, Routes } from 'react-router'
-import IndexLayout from './components/layouts/IndexLayout.tsx'
-import CreateQuiz from './pages/CreateQuiz.tsx'
-import Login from './pages/Login.tsx'
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <HashRouter>
-      <Routes>
-        <Route element={<IndexLayout />}>
-          <Route path='/' element={<App />} />
-          <Route path='/create-quiz' element={<CreateQuiz />} />
-          <Route path='/login' element={<Login />} />
-        </Route>
-      </Routes>
-    </HashRouter>
-  </StrictMode>,
-)
+const container = document.getElementById('root');
+const root = createRoot(container!);
+
+if (!import.meta.env.VITE_AUTH0_DOMAIN || !import.meta.env.VITE_AUTH0_CLIENT_ID) {
+  throw new Error('Missing Auth0 environment variables: VITE_AUTH0_DOMAIN or VITE_AUTH0_CLIENT_ID');
+}
+
+const providerConfig = {
+  domain: import.meta.env.VITE_AUTH0_DOMAIN,
+  clientId: import.meta.env.VITE_AUTH0_CLIENT_ID,
+  authorizationParams: {
+    redirect_uri: window.location.origin
+  },
+};
+
+root.render(
+  <Auth0Provider
+    {...providerConfig}
+  >
+    <App />
+  </Auth0Provider>,
+);
