@@ -8,10 +8,6 @@ function IndexLayout() {
 
   const { user, isAuthenticated } = useAuth0();
   const isLoggedIn = isAuthenticated && user;
-  // console.log(isLoggedIn);
-  // console.log(user);
-  // console.log(user?.name);
-  // console.log(isAuthenticated)
 
   return (
     <div>
