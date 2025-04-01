@@ -1,7 +1,18 @@
 import { Link, Outlet } from "react-router";
 import logo from "../../assets/logo.png";
+import { useAuth0 } from "@auth0/auth0-react";
+import LoginButton from "../LoginButton";
+import LogoutButton from "../LogoutButton";
 
 function IndexLayout() {
+
+  const { user, isAuthenticated } = useAuth0();
+  const isLoggedIn = isAuthenticated && user;
+  // console.log(isLoggedIn);
+  // console.log(user);
+  // console.log(user?.name);
+  // console.log(isAuthenticated)
+
   return (
     <div>
       <div className="bg-blue-500 w-full p-2 fixed top-0 left-0 z-10">
@@ -13,9 +24,12 @@ function IndexLayout() {
             }}>Create quiz</Link>
               
           </div>
-
+            {/*TODO: Can login and it shows on dashboard but its broken af atm */}
             <div className="flex items-center pr-15">
-              
+              {isLoggedIn
+                ? <LogoutButton />
+                : <LoginButton />
+              }
             </div>
 
         </div>
