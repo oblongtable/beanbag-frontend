@@ -5,6 +5,7 @@ import { HashRouter, Route, Routes } from 'react-router'
 import IndexLayout from './components/layouts/IndexLayout.tsx'
 import CreateQuiz from './pages/CreateQuiz.tsx'
 import Login from './pages/Login.tsx'
+import LobbyPage from './pages/LobbyPage.tsx'
 
 
 const App = () => {
@@ -16,6 +17,7 @@ const App = () => {
             <Route path='/' element={<HomePage />} />
             <Route path='/create-quiz' element={<CreateQuiz />} />
             <Route path='/login' element={<Login />} />
+            <Route path='/lobby/1234' element={<LobbyPage />} />
           </Route>
         </Routes>
       </HashRouter>
@@ -25,7 +27,3 @@ const App = () => {
 }
 
 export default App;
-
-
-
-
