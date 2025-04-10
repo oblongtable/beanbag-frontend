@@ -1,10 +1,12 @@
 import './HomePage.css'
+import beanbagImage from '../assets/beanbag.png'
 import { useForm } from 'react-hook-form'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../components/ui/form'
 import { Input } from '../components/ui/input'
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { Button } from '../components/ui/button'
+import { useState } from 'react'
 
 
 const formSchema = z.object({
@@ -13,6 +15,8 @@ const formSchema = z.object({
 })
 
 function HomePage() {
+
+  const [user, setUser] = useState(null)
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -26,40 +30,71 @@ function HomePage() {
     // Do something with the form values.
     // ✅ This will be type-safe and validated.
     console.log(values)
+
+    const requestBody = {
+      name: values.name,
+      email: "asdf@gmail.com"
+    }
+
+    fetch('http://localhost:8080/api/users', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+
+      },
+      body: JSON.stringify(requestBody),
+    })
+      .then((response) => {     
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json();
+      })
+      .then((data) => {     
+        console.log('Success:', data);
+        // Handle success
+      })
+      .catch((error) => {
+        console.error('Error:', error);
+        // Handle error
+      });  
   }
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <FormField
-          control={form.control}
-          name="roomCode"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Room Code</FormLabel>
-              <FormControl>
-                <Input placeholder="Enter 4 letter room code" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Name</FormLabel>
-              <FormControl>
-                <Input placeholder="John Doe" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <Button type="submit">Submit</Button>
-      </form>
-    </Form>
+    <div className="flex flex-col items-center w-full">
+      <img src={beanbagImage} ></img>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <FormField
+            control={form.control}
+            name="roomCode"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Room Code</FormLabel>
+                <FormControl>
+                  <Input placeholder="Enter 4 letter room code" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Name</FormLabel>
+                <FormControl>
+                  <Input placeholder="John Doe" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <Button type="submit">Submit</Button>
+        </form>
+      </Form>
+    </div>
   )
 }
 
