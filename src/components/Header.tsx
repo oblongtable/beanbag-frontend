@@ -1,12 +1,25 @@
-import { Link } from "react-router";
 import logo from "@/assets/logo.png";
-import LogoutButton from "./LogoutButton";
-import LoginButton from "./LoginButton";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { useAuth0 } from "@auth0/auth0-react";
+import { Link } from "react-router";
+import LoginButton from "./LoginButton";
+import LogoutButton from "./LogoutButton";
+import { useState } from "react";
+import { Button } from "./ui/button";
+import CreateLobbyForm from "./lobby/CreateLobbyForm";
 
 function Header() {
   const { user, isAuthenticated } = useAuth0();
   const isLoggedIn = isAuthenticated && user;
+  const [open, setOpen] = useState(false)
+
 
   return (
     <header className="flex items-center justify-between px-4 py-3 bg-blue-500">
@@ -21,8 +34,19 @@ function Header() {
         >
           Create quiz
         </Link>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline">Create Lobby</Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Create Lobby</DialogTitle>
+              <DialogDescription>Create a lobby to play with your friends</DialogDescription>
+            </DialogHeader>
+            <CreateLobbyForm />
+          </DialogContent>
+        </Dialog>
       </div>
-
       <div>
         <div>
           {isLoggedIn ? (
