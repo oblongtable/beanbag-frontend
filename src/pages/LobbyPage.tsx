@@ -8,7 +8,7 @@ import {
     CardTitle,
   } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { useRef, useState } from "react"
+import { useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
@@ -17,10 +17,8 @@ import { Button } from "@/components/ui/button"
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from "@/components/ui/form"
 import { Textarea } from "@/components/ui/textarea"
@@ -89,8 +87,8 @@ function LobbyPage() {
         initialPlayers.set(player.id, { name: player.name, avatar: player.avatar })
     })
 
-    const [playerMap, setPlayerMap] = useState(initialPlayers)
-    const [messagesList, setMessagesList] = useState(messages)
+    const [playerMap, _setPlayerMap] = useState(initialPlayers)
+    const [messagesList, _setMessagesList] = useState(messages)
 
     const form = useForm<z.infer<typeof ChatFormSchema>>({
         resolver: zodResolver(ChatFormSchema),
