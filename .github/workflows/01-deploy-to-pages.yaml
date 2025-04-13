@@ -42,6 +42,8 @@ jobs:
         env:
           VITE_AUTH0_CLIENT_ID: ${{ secrets.VITE_AUTH0_CLIENT_ID }}
           VITE_AUTH0_DOMAIN: ${{ secrets.VITE_AUTH0_DOMAIN }}
+          VITE_AUTH0_AUDIENCE: ${{ secrets.VITE_AUTH0_AUDIENCE }}
+          VITE_BACKEND_API_ADDR: ${{ secrets.VITE_BACKEND_API_ADDR }}
       - name: Setup Pages
         uses: actions/configure-pages@v4
       - name: Upload artifact
