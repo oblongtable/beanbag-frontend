@@ -1,0 +1,39 @@
+version: "3.9"
+services:
+  client-react-vite:
+    image: beanbag-frontend-vite
+    build:
+      context: ./
+      dockerfile: Dockerfile.dev.vite
+    init: true
+    volumes:
+      - type: bind
+        source: ./
+        target: /usr/src/app/
+      - type: volume
+        target: /usr/src/app/node_modules 
+      - type: bind
+        source: ./vite.config.js
+        target: /usr/src/app/vite.config.js
+    networks:
+      - frontend
+    ports:
+      - 5173:5173
+  client-react-nginx:
+    image: beanbag-frontend-nginx
+    build:
+      context: ./
+      dockerfile: Dockerfile.dev.nginx
+    init: true
+    networks:
+      - frontend
+    ports:
+      - 80:8080
+    restart: unless-stopped
+networks:
+  frontend:
+    name: frontend
+    external: true
+  backend:
+    name: backend
+    external: true

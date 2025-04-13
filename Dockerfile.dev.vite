@@ -1,0 +1,22 @@
+#checkov:skip=CKV_DOCKER_3: required
+FROM node:19.4-bullseye AS build
+
+# Specify working directory other than /
+WORKDIR /usr/src/app
+
+# Copy only files required to install
+# dependencies (better layer caching)
+COPY package*.json ./
+
+# Use cache mount to speed up install of existing dependencies
+RUN --mount=type=cache,target=/usr/src/app/.npm \
+  npm set cache /usr/src/app/.npm && \
+  npm install
+
+COPY . .
+
+EXPOSE 5173
+
+HEALTHCHECK --interval=30s --timeout=3s CMD curl -f http://localhost:5173/ping || exit 1
+
+CMD ["npm", "run", "dev", "--host"]
