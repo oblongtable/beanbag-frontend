@@ -6,6 +6,7 @@ import { defineConfig } from "vite";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -19,11 +20,18 @@ export default defineConfig({
     proxy: {
       // Proxy requests that start with /api/
       '/api/': {
-        target: 'http://beanbag-backend:8080',
+        target: 'http://localhost:8080',
         changeOrigin: true, // Needed for virtual hosted sites
         // Rewrite the path: remove the '/api/' prefix before forwarding
         // e.g., /api/users -> /users
-        rewrite: (path: string) => path.replace(/^\/api\//, ''),
+        secure: false, // Set to true if backend is HTTPS with valid cert
+      },
+      '/health/': {
+        target: 'http://localhost:8080',
+        changeOrigin: true, // Needed for virtual hosted sites
+        // Rewrite the path: remove the '/api/' prefix before forwarding
+        // e.g., /api/users -> /users
+        rewrite: (path: string) => path.replace(/^\/health\//, ''),
         secure: false, // Set to true if backend is HTTPS with valid cert
       },
     }
