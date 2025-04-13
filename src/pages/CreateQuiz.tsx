@@ -25,8 +25,8 @@ function CreateQuiz() {
   return (
     <div className="flex h-full">
       <QuestionSidebar questions={questions} onAddQuestion={onAddQuestion} onSelectQuestion={onSelectQuestion} selectedQuestionIndex={selectedQuestionIndex} />
-      <div className="flex-1">
-        <Canvas onQuestionChange={onQuestionChange} question={questions[selectedQuestionIndex].question} />
+      <div className="flex-1 flex justify-center items-center">
+      <Canvas onQuestionChange={onQuestionChange} question={questions[selectedQuestionIndex].question} />
       </div>
     </div>
   );

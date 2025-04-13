@@ -4,13 +4,14 @@ import { Input } from "../ui/input";
 interface CanvasProps {
     question: string;
     onQuestionChange: (question: string) => void;
+    className? : string;
 }
 
 
 function Canvas(props: CanvasProps) {    
 
     return (
-        <div className="w-full max-w-5xl">
+        <div className={`w-full max-w-5xl ${props.className}`}>
             <AspectRatio ratio={16 / 9} className="bg-white rounded-1g shadow-x1 border border-gray-300 overflow-hidden">
                 <div id="canvas-area" className="w-full h-full relative">
                 <div
