@@ -36,10 +36,10 @@ function Header() {
         </Link>
         <Link
           to={{
-            pathname: "/manage-quiz",
+            pathname: "/test-api",
           }}
         >
-          Manage Quiz
+          Test API
         </Link>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
