@@ -6,6 +6,7 @@ import IndexLayout from './components/layouts/IndexLayout.tsx'
 import CreateQuiz from './pages/CreateQuiz.tsx'
 import Login from './pages/Login.tsx'
 import LobbyPage from './pages/LobbyPage.tsx'
+import Profile from './pages/Profile.tsx'
 
 
 const App = () => {
@@ -18,6 +19,7 @@ const App = () => {
             <Route path='/create-quiz' element={<CreateQuiz />} />
             <Route path='/login' element={<Login />} />
             <Route path='/lobby/1234' element={<LobbyPage />} />
+            <Route path='/profile' element={<Profile />} />
           </Route>
         </Routes>
       </HashRouter>

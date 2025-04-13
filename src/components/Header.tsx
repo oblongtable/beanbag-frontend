@@ -48,6 +48,9 @@ function Header() {
         </Dialog>
       </div>
       <div>
+        <Link to={{ pathname: "/profile" }}>
+          Profile
+        </Link>
         <div>
           {isLoggedIn ? (
             <LogoutButton className="block" />

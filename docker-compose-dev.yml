@@ -6,6 +6,8 @@ services:
       context: ./
       dockerfile: Dockerfile.dev.vite
     init: true
+    stdin_open: true
+    tty: true
     volumes:
       - type: bind
         source: ./
