@@ -9,7 +9,7 @@ const __dirname = path.dirname(__filename);
 
 const env = loadEnv('', process.cwd(), '');
 // e.g. http://beanbag-backend:8080
-const apiTarget = env.VITE_API_DOCKER_CONTAINER_ADDR || 'http://localhost:8080';
+const apiTarget = env.VITE_BACKEND_API_ADDR || 'http://localhost:8080';
 
 
 // https://vite.dev/config/
