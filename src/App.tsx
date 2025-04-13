@@ -7,6 +7,8 @@ import CreateQuiz from './pages/CreateQuiz.tsx'
 import Login from './pages/Login.tsx'
 import LobbyPage from './pages/LobbyPage.tsx'
 import Profile from './pages/Profile.tsx'
+import ManageQuizzes from './pages/TestQuizApi.tsx'
+
 
 
 const App = () => {
@@ -20,6 +22,7 @@ const App = () => {
             <Route path='/login' element={<Login />} />
             <Route path='/lobby/1234' element={<LobbyPage />} />
             <Route path='/profile' element={<Profile />} />
+            <Route path='/manage-quiz' element={<ManageQuizzes />} />
           </Route>
         </Routes>
       </HashRouter>

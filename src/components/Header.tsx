@@ -34,6 +34,13 @@ function Header() {
         >
           Create quiz
         </Link>
+        <Link
+          to={{
+            pathname: "/manage-quiz",
+          }}
+        >
+          Manage Quiz
+        </Link>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button variant="outline">Create Lobby</Button>
