@@ -50,7 +50,7 @@ function Header() {
               <DialogTitle>Create Lobby</DialogTitle>
               <DialogDescription>Create a lobby to play with your friends</DialogDescription>
             </DialogHeader>
-            <CreateLobbyForm />
+            <CreateLobbyForm setOpen={setOpen}/>
           </DialogContent>
         </Dialog>
       </div>

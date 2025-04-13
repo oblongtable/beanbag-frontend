@@ -58,7 +58,11 @@ function HomePage() {
 
   return (
     <div className="flex flex-col items-center py-10">
-      <img src={beanbagImage} ></img>
+      <img 
+      src={beanbagImage} 
+      className="w-64 mb-4"
+      alt="Beanbag"
+      />
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-md">
           <FormField

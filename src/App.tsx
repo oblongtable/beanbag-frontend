@@ -1,4 +1,4 @@
-import { StrictMode } from 'react'
+import { StrictMode, useState } from 'react'
 import HomePage from './pages/HomePage.tsx'
 import { HashRouter, Route, Routes } from 'react-router'
 
@@ -8,24 +8,28 @@ import Login from './pages/Login.tsx'
 import LobbyPage from './pages/LobbyPage.tsx'
 import Profile from './pages/Profile.tsx'
 import ApiTester from './pages/TestApi.tsx'
-
-
+import { WebSocketContext } from './context/WebSocketContext.tsx'
 
 const App = () => {
+
+  const [webSocket, setWebSocket] = useState< WebSocket | null>(null);
+
   return (
     <StrictMode>
-      <HashRouter>
-        <Routes>
-          <Route element={<IndexLayout />}>
-            <Route path='/' element={<HomePage />} />
-            <Route path='/create-quiz' element={<CreateQuiz />} />
-            <Route path='/login' element={<Login />} />
-            <Route path='/lobby/1234' element={<LobbyPage />} />
-            <Route path='/profile' element={<Profile />} />
-            <Route path='/test-api' element={<ApiTester />} />
-          </Route>
-        </Routes>
-      </HashRouter>
+      <WebSocketContext.Provider value={{webSocket, setWebSocket}}>
+        <HashRouter>
+          <Routes>
+            <Route element={<IndexLayout />}>
+              <Route path='/' element={<HomePage />} />
+              <Route path='/create-quiz' element={<CreateQuiz />} />
+              <Route path='/login' element={<Login />} />
+              <Route path='/lobby/:lobbyId' element={<LobbyPage />} />
+              <Route path='/profile' element={<Profile />} />
+              <Route path='/test-api' element={<ApiTester />} />
+            </Route>
+          </Routes>
+        </HashRouter>0
+      </WebSocketContext.Provider>
     </StrictMode>
   );
   
