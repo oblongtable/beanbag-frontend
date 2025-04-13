@@ -1,5 +1,5 @@
 // src/components/QuizApiTester.tsx (or QuizManager.tsx)
-import React, { useState, useCallback, ChangeEvent } from 'react';
+import { useState, useCallback, ChangeEvent } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { fetchWithAuth } from '../utils/apiClient'; // Adjust path if needed
 
