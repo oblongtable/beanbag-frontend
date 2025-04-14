@@ -2,29 +2,57 @@ import { useState, useCallback, ChangeEvent } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { fetchWithAuth } from '../utils/apiClient';
 import { Button } from "../components/ui/button";
+import { Textarea } from "../components/ui/textarea";
+import { Input } from "../components/ui/input";
 
-// --- Interfaces (keep these as they match Go models) ---
-interface ApiAnswer {
-  text: string;
-  isCorrect: boolean;
-}
-
-interface ApiQuestion {
-  text: string;
-  useTimer: boolean;
-  timerValue: number;
-  answers: ApiAnswer[];
-}
-
-interface CreateQuizPayload {
-  title: string;
-  creatorId: number; // Still needs proper handling
-  questions: ApiQuestion[];
-}
-// --- ---
+// Default example payload for the textarea
+const defaultCreatePayload = `{
+  "title": "My Full Science Quiz",
+  "creator_id": 1,
+  "questions": [
+    {
+      "text": "What is H2O?",
+      "useTimer": false,
+      "timerValue": 0,
+      "answers": [
+        {
+          "text": "Oxygen",
+          "isCorrect": false
+        },
+        {
+          "text": "Water",
+          "isCorrect": true
+        },
+        {
+          "text": "Hydrogen Peroxide",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "What is the closest star?",
+      "useTimer": true,
+      "timerValue": 20,
+      "answers": [
+        {
+          "text": "The Sun",
+          "isCorrect": true
+        },
+        {
+          "text": "Proxima Centauri",
+          "isCorrect": false
+        },
+        {
+          "text": "Alpha Centauri A",
+          "isCorrect": false
+        }
+      ]
+    }
+  ]
+}`;
 
 function ApiTester() {
-  const { user, isAuthenticated, isLoading, getAccessTokenSilently } = useAuth0();
+  const { isAuthenticated, isLoading, getAccessTokenSilently } = useAuth0();
 
   // --- State for API results and loading/error ---
   const [apiResult, setApiResult] = useState<any>(null);
@@ -34,23 +62,11 @@ function ApiTester() {
   // --- State for GET request input ---
   const [getQuizId, setGetQuizId] = useState<string>('1'); // Default to '1', input is string
 
-  // --- State for POST request inputs ---
-  const [createQuizTitle, setCreateQuizTitle] = useState<string>('My New Interactive Quiz');
-  const [createQuizQuestions, setCreateQuizQuestions] = useState<ApiQuestion[]>([
-    // Start with one example question
-    {
-      text: 'What is the default first question?',
-      useTimer: false,
-      timerValue: 0,
-      answers: [
-        { text: 'Answer A', isCorrect: true },
-        { text: 'Answer B', isCorrect: false },
-      ],
-    },
-  ]);
+  // --- State for POST request JSON payload ---
+  const [createQuizJsonPayload, setCreateQuizJsonPayload] = useState<string>(defaultCreatePayload);
 
-  // --- Handlers for GET ---
-  const handleGetQuiz = useCallback(async () => {
+  // --- Handler for GET FULL Quiz ---
+  const handleGetFullQuiz = useCallback(async () => {
     if (!isAuthenticated) {
       setError("Please log in to fetch quizzes.");
       return;
@@ -66,129 +82,61 @@ function ApiTester() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetchWithAuth(getAccessTokenSilently, `/quizzes/${quizIdNum}`);
+      // Use the /full endpoint
+      const response = await fetchWithAuth(getAccessTokenSilently, `/quizzes/${quizIdNum}/full`);
       if (!response.ok) {
         const errorData = await response.text();
-        throw new Error(`Failed to fetch quiz ${quizIdNum}. Status: ${response.status}. ${errorData}`);
+        throw new Error(`Failed to fetch full quiz ${quizIdNum}. Status: ${response.status}. ${errorData}`);
       }
       const data = await response.json();
       setApiResult(data);
-      console.log("Fetched Quiz:", data);
+      console.log("Fetched Full Quiz:", data);
     } catch (err: any) {
-      console.error("Error fetching quiz:", err);
-      setError(err.message || "An unknown error occurred while fetching the quiz.");
+      console.error("Error fetching full quiz:", err);
+      setError(err.message || "An unknown error occurred while fetching the full quiz.");
       setApiResult(null);
     } finally {
       setIsSubmitting(false);
     }
   }, [isAuthenticated, getAccessTokenSilently, getQuizId]); // Include getQuizId
 
-  // --- Handlers for POST form changes ---
-
-  const handleTitleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setCreateQuizTitle(e.target.value);
-  };
-
-  const handleQuestionChange = (qIndex: number, field: keyof ApiQuestion, value: any) => {
-    setCreateQuizQuestions(prevQuestions =>
-      prevQuestions.map((q, index) =>
-        index === qIndex ? { ...q, [field]: value } : q
-      )
-    );
-  };
-
-  const handleAnswerChange = (qIndex: number, aIndex: number, field: keyof ApiAnswer, value: any) => {
-    setCreateQuizQuestions(prevQuestions =>
-      prevQuestions.map((q, index) => {
-        if (index !== qIndex) return q;
-        const updatedAnswers = q.answers.map((a, ansIndex) =>
-          ansIndex === aIndex ? { ...a, [field]: value } : a
-        );
-        return { ...q, answers: updatedAnswers };
-      })
-    );
-  };
-
-  const handleAddQuestion = () => {
-    setCreateQuizQuestions(prevQuestions => [
-      ...prevQuestions,
-      { // Add a new blank question structure
-        text: '',
-        useTimer: false,
-        timerValue: 0,
-        answers: [{ text: '', isCorrect: false }], // Start with one blank answer
-      },
-    ]);
-  };
-
-  const handleRemoveQuestion = (qIndex: number) => {
-    setCreateQuizQuestions(prevQuestions => prevQuestions.filter((_, index) => index !== qIndex));
-  };
-
-  const handleAddAnswer = (qIndex: number) => {
-    setCreateQuizQuestions(prevQuestions =>
-      prevQuestions.map((q, index) => {
-        if (index !== qIndex) return q;
-        return {
-          ...q,
-          answers: [...q.answers, { text: '', isCorrect: false }], // Add new blank answer
-        };
-      })
-    );
-  };
-
-  const handleRemoveAnswer = (qIndex: number, aIndex: number) => {
-    setCreateQuizQuestions(prevQuestions =>
-      prevQuestions.map((q, index) => {
-        if (index !== qIndex) return q;
-        // Prevent removing the last answer
-        if (q.answers.length <= 1) return q;
-        const updatedAnswers = q.answers.filter((_, ansIndex) => ansIndex !== aIndex);
-        return { ...q, answers: updatedAnswers };
-      })
-    );
-  };
-
-
   // --- Handler for POST submit ---
-  const handleCreateQuiz = useCallback(async () => {
-    if (!isAuthenticated || !user?.sub) {
+  const handleCreateQuizFromJson = useCallback(async () => {
+    if (!isAuthenticated) {
       setError("Please log in to create quizzes.");
       return;
     }
-     // Basic validation
-    if (!createQuizTitle.trim()) {
-        setError("Quiz title cannot be empty.");
-        return;
-    }
-    if (createQuizQuestions.length === 0) {
-        setError("Quiz must have at least one question.");
-        return;
-    }
-    // Add more validation as needed (e.g., check for empty questions/answers, at least one correct answer per question)
-
 
     setError(null);
     setApiResult(null);
     setIsSubmitting(true);
 
-    // Construct payload from state
-    const quizPayload: CreateQuizPayload = {
-      title: createQuizTitle,
-      // !!! IMPORTANT: Still using placeholder creatorId !!!
-      // You MUST implement logic to get the correct int32 user ID.
-      // Example: Fetch from your backend: GET /api/users/me -> returns { internalId: 123 }
-      creatorId: 1, // <<< --- !!! REPLACE WITH ACTUAL LOGIC !!!
-      questions: createQuizQuestions, // Use the state directly
-    };
+    let parsedPayload;
+    try {
+      parsedPayload = JSON.parse(createQuizJsonPayload);
+      // Basic validation on parsed payload (optional but good practice)
+      if (!parsedPayload.title || !parsedPayload.creator_id || !Array.isArray(parsedPayload.questions)) {
+          throw new Error("Invalid JSON structure: Missing title, creator_id, or questions array.");
+      }
+      // Add more specific validation if needed (e.g., question/answer content)
+    } catch (parseError: any) {
+      setError(`Invalid JSON payload: ${parseError.message}`);
+      setIsSubmitting(false);
+      return;
+    }
+
+    // TODO: The backend handler should ideally verify this against the JWT user.
+    console.log("Sending creator_id:", parsedPayload.creator_id); // Log the ID being sent
 
     try {
+      // Use the correct route from main.go for minimal/full creation
       const response = await fetchWithAuth(
         getAccessTokenSilently,
-        '/quizzes',
+        '/quizzes/minimal', // Ensure this matches your backend route in main.go
         {
           method: 'POST',
-          body: JSON.stringify(quizPayload),
+          // Send the original JSON string directly after validation
+          body: JSON.stringify(parsedPayload),
         }
       );
 
@@ -198,6 +146,7 @@ function ApiTester() {
             const errorData = await response.json();
             errorDetails += ` - ${JSON.stringify(errorData)}`;
         } catch (jsonError) {
+            // Fallback if error response is not JSON
             const errorText = await response.text();
             errorDetails += ` - ${errorText}`;
         }
@@ -216,8 +165,7 @@ function ApiTester() {
     } finally {
       setIsSubmitting(false);
     }
-    // Keep state dependencies: title, questions, user, isAuthenticated, getAccessTokenSilently
-  }, [isAuthenticated, user, getAccessTokenSilently, createQuizTitle, createQuizQuestions]);
+  }, [isAuthenticated, getAccessTokenSilently, createQuizJsonPayload]); // Dependency is the JSON string
 
   // --- Render logic ---
   if (isLoading) return <div>Loading authentication...</div>;
@@ -229,146 +177,87 @@ function ApiTester() {
         <p>Please log in to test the Quiz API.</p>
       ) : (
         <div>
-          <p>Welcome, {user?.name}!</p>
           <hr style={{ margin: '20px 0' }} />
 
-          {/* --- GET Quiz Section --- */}
-          <h3>Get Quiz by ID</h3>
+          {/* --- GET Full Quiz Section --- */}
+          <h3>Get Full Quiz by ID</h3>
           <div>
             <label htmlFor="getQuizIdInput">Quiz ID: </label>
-            <input
+            <Input // Use your Input component
               type="number"
               id="getQuizIdInput"
               value={getQuizId}
-              onChange={(e) => setGetQuizId(e.target.value)}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setGetQuizId(e.target.value)}
               min="1"
-              style={{ marginRight: '10px' }}
+              style={{ marginRight: '10px', width: '80px' }}
               disabled={isSubmitting}
             />
-            <Button onClick={handleGetQuiz} disabled={isSubmitting}>
-              {isSubmitting ? 'Fetching...' : 'Get Quiz'}
+            <Button onClick={handleGetFullQuiz} disabled={isSubmitting}>
+              {isSubmitting ? 'Fetching...' : 'Get Full Quiz'}
             </Button>
           </div>
           <hr style={{ margin: '20px 0' }} />
 
-          {/* --- CREATE Quiz Section --- */}
-          <h3>Create New Quiz</h3>
-          <div>
-            <label htmlFor="createQuizTitleInput">Quiz Title: </label>
-            <input
-              type="text"
-              id="createQuizTitleInput"
-              value={createQuizTitle}
-              onChange={handleTitleChange}
-              style={{ width: '300px', marginBottom: '15px' }}
-              disabled={isSubmitting}
-            />
-          </div>
+          {/* --- Side-by-Side Container for Create and Result --- */}
+          <div style={{ display: 'flex', gap: '20px' }}>
 
-          <h4>Questions</h4>
-          {createQuizQuestions.map((question, qIndex) => (
-            <div key={qIndex} style={{ border: '1px solid #ccc', padding: '15px', marginBottom: '15px', position: 'relative' }}>
-               <Button
-                 onClick={() => handleRemoveQuestion(qIndex)}
-                 disabled={isSubmitting || createQuizQuestions.length <= 1} // Prevent removing the last question easily
-                 style={{ position: 'absolute', top: '5px', right: '5px', background: 'red', color: 'white', border: 'none', cursor: 'pointer' }}
-                 title="Remove Question"
-               >
-                 X
-               </Button>
+            {/* --- CREATE Quiz Section (Left Side) --- */}
+            <div style={{ flex: 1 }}> {/* Takes up half the space */}
+              <h3>Create New Quiz (from JSON)</h3>
               <div>
-                <label htmlFor={`qtext-${qIndex}`}>Question {qIndex + 1}: </label>
-                <input
-                  type="text"
-                  id={`qtext-${qIndex}`}
-                  value={question.text}
-                  onChange={(e) => handleQuestionChange(qIndex, 'text', e.target.value)}
-                  style={{ width: '80%', marginBottom: '10px' }}
+                <label htmlFor="createQuizJsonInput">Quiz JSON Payload:</label>
+                <p style={{fontSize: '0.8em', color: '#555'}}>
+                    Paste/Edit the full JSON structure here. **Ensure `creator_id` is a valid user ID from your database.**
+                </p>
+                <Textarea // Use your Textarea component
+                  id="createQuizJsonInput"
+                  value={createQuizJsonPayload}
+                  onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setCreateQuizJsonPayload(e.target.value)}
+                  rows={25} // Adjust height as needed
+                  style={{ width: '100%', marginBottom: '10px', fontFamily: 'monospace', boxSizing: 'border-box' }} // Use 100% width and box-sizing
                   disabled={isSubmitting}
-                  placeholder="Enter question text"
+                  placeholder="Enter JSON payload for creating a quiz..."
                 />
               </div>
-              <div>
-                <label htmlFor={`qtimer-${qIndex}`}>Use Timer? </label>
-                <input
-                  type="checkbox"
-                  id={`qtimer-${qIndex}`}
-                  checked={question.useTimer}
-                  onChange={(e) => handleQuestionChange(qIndex, 'useTimer', e.target.checked)}
-                  disabled={isSubmitting}
-                />
-                {question.useTimer && (
-                  <span style={{ marginLeft: '10px' }}>
-                    <label htmlFor={`qtimeval-${qIndex}`}>Timer (sec): </label>
-                    <input
-                      type="number"
-                      id={`qtimeval-${qIndex}`}
-                      value={question.timerValue}
-                      onChange={(e) => handleQuestionChange(qIndex, 'timerValue', parseInt(e.target.value, 10) || 0)}
-                      min="0"
-                      style={{ width: '60px' }}
-                      disabled={isSubmitting}
-                    />
-                  </span>
-                )}
-              </div>
-
-              <h5>Answers</h5>
-              {question.answers.map((answer, aIndex) => (
-                <div key={aIndex} style={{ display: 'flex', alignItems: 'center', marginBottom: '5px', marginLeft: '20px' }}>
-                  <input
-                    type="text"
-                    value={answer.text}
-                    onChange={(e) => handleAnswerChange(qIndex, aIndex, 'text', e.target.value)}
-                    style={{ flexGrow: 1, marginRight: '10px' }}
-                    disabled={isSubmitting}
-                    placeholder={`Answer ${aIndex + 1}`}
-                  />
-                  <label htmlFor={`correct-${qIndex}-${aIndex}`} style={{ marginRight: '5px' }}>Correct?</label>
-                  <input
-                    type="checkbox"
-                    id={`correct-${qIndex}-${aIndex}`}
-                    checked={answer.isCorrect}
-                    onChange={(e) => handleAnswerChange(qIndex, aIndex, 'isCorrect', e.target.checked)}
-                    disabled={isSubmitting}
-                    style={{ marginRight: '10px' }}
-                  />
-                  <Button
-                    onClick={() => handleRemoveAnswer(qIndex, aIndex)}
-                    disabled={isSubmitting || question.answers.length <= 1} // Prevent removing last answer
-                    style={{ background: 'orange', color: 'white', border: 'none', cursor: 'pointer', padding: '2px 5px' }}
-                    title="Remove Answer"
-                  >
-                    X
-                  </Button>
-                </div>
-              ))}
-              <Button onClick={() => handleAddAnswer(qIndex)} disabled={isSubmitting} style={{ marginTop: '10px', marginLeft: '20px' }}>
-                Add Answer
+              <Button onClick={handleCreateQuizFromJson} disabled={isSubmitting}>
+                {isSubmitting ? 'Creating...' : 'Create Quiz from JSON'}
               </Button>
             </div>
-          ))}
-          <Button onClick={handleAddQuestion} disabled={isSubmitting} style={{ marginTop: '10px', marginBottom: '20px' }}>
-            Add Question
-          </Button>
-          <br />
-          <Button onClick={handleCreateQuiz} disabled={isSubmitting}>
-            {isSubmitting ? 'Creating...' : 'Create Quiz Now'}
-          </Button>
 
-          <hr style={{ margin: '20px 0' }} />
-
-          {/* --- Result/Error Display --- */}
-          {error && <p style={{ color: 'red', fontWeight: 'bold' }}>Error: {error}</p>}
-
-          {apiResult && (
-            <div>
+            {/* --- Result/Error Display (Right Side) --- */}
+            <div style={{ flex: 1 }}> {/* Takes up the other half */}
               <h3>Last API Result:</h3>
-              <pre style={{ background: '#f0f0f0', padding: '10px', border: '1px solid #ccc', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-                {JSON.stringify(apiResult, null, 2)}
-              </pre>
+              {error && <p style={{ color: 'red', fontWeight: 'bold' }}>Error: {error}</p>}
+
+              {apiResult ? (
+                <pre style={{
+                  background: '#f0f0f0',
+                  padding: '10px',
+                  border: '1px solid #ccc',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-all',
+                  height: 'calc(1.2em * 25 + 22px + 1.6em + 10px)', // Try to match textarea height roughly
+                  overflowY: 'auto', // Add scroll if content exceeds height
+                  boxSizing: 'border-box'
+                }}>
+                  {JSON.stringify(apiResult, null, 2)}
+                </pre>
+              ) : (
+                 <div style={{
+                    background: '#f0f0f0',
+                    padding: '10px',
+                    border: '1px solid #ccc',
+                    height: 'calc(1.2em * 25 + 22px + 1.6em + 10px)', // Match height even when empty
+                    boxSizing: 'border-box',
+                    color: '#888'
+                 }}>
+                    (No result yet)
+                 </div>
+              )}
             </div>
-          )}
+
+          </div> {/* End Side-by-Side Container */}
+
         </div>
       )}
     </div>
