@@ -46,9 +46,9 @@ function CreateLobbyForm({ setOpen }: CreateLobbyFormProps) {
         console.log("Message from server ", atob(event.data.toString().substring(1, event.data.length - 1)));
         const data = JSON.parse(atob(event.data.toString().substring(1, event.data.length - 1)));
 
-        if(data.type === "status_update_room") {
+        if(data.message === "Create room Success") {
           setOpen(false);
-          navigate(`/lobby/${data.Room.ID}`);
+          navigate(`/lobby/${data.info.room_id}`);
         }
 
       });
@@ -60,10 +60,9 @@ function CreateLobbyForm({ setOpen }: CreateLobbyFormProps) {
       connection.addEventListener("open", (_event) => {
         connection.send(JSON.stringify({
           type: "create_room",
-          payload: {
-            name: values.roomName,
-            size: values.roomSize,
-            leader: null
+          info: {
+            room_name: values.roomName,
+            room_size: values.roomSize
           }
         }))
   
