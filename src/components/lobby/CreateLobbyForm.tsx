@@ -32,7 +32,7 @@ function CreateLobbyForm({ setOpen }: CreateLobbyFormProps) {
     },
   })
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  function onSubmit(values: z.infer<typeof formSchema>) {
 
     console.log("values", values)
 
@@ -48,7 +48,13 @@ function CreateLobbyForm({ setOpen }: CreateLobbyFormProps) {
 
         if(data.message === "Create room Success") {
           setOpen(false);
-          navigate(`/lobby/${data.info.room_id}`);
+          navigate(`/lobby/${data.info.room_id}`, {
+            state: {
+              roomId: data.info.room_id,
+              roomName: values.roomName,
+              roomSize: values.roomSize,
+            }
+          });
         }
 
       });

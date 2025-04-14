@@ -1,18 +1,18 @@
-import { ScrollArea } from "@/components/ui/scroll-area"
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardFooter,
-    CardHeader,
-    CardTitle,
-  } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { useState } from "react"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { useContext, useState } from "react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
- 
+
 import { Button } from "@/components/ui/button"
 import {
   Form,
@@ -22,7 +22,11 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Textarea } from "@/components/ui/textarea"
+import { WebSocketContext } from "@/context/WebSocketContext"
+import { useLocation } from "react-router-dom"
 
+
+const backendWsBaseUrl = import.meta.env.VITE_AUTH0_AUDIENCE.replace(/^https?:\/\//, 'ws://')  // This is bad help
 
 // Placeholder
 const players = [
@@ -69,10 +73,10 @@ const messages = [
 
 const ChatFormSchema = z.object({
     bio: z
-      .string()
-      .max(200, {
-        message: "Chat message must not be longer than 200 characters.",
-      }),
+        .string()
+        .max(200, {
+            message: "Chat message must not be longer than 200 characters.",
+        }),
 })
 
 function onSubmit(data: z.infer<typeof ChatFormSchema>) {
@@ -80,6 +84,38 @@ function onSubmit(data: z.infer<typeof ChatFormSchema>) {
 }
 
 function LobbyPage() {
+
+    const { webSocket, setWebSocket } = useContext(WebSocketContext);
+    const location = useLocation();
+
+    // Scary that these aren't immutable
+    var roomId = location.state?.roomId  // I cannot get this from the URL as we are using HashRouter
+    var roomName = location.state?.roomName
+    var roomSize = location.state?.roomSize
+
+    // I've lost my room info so I need to go get it again
+    if (location.state === null) {
+
+        // Reopen websocket connection if closed
+        if (webSocket === null) {
+            const connection = new WebSocket(`${backendWsBaseUrl}/ws`);
+            setWebSocket(connection);
+
+            connection.addEventListener("close", (_event) => {
+              setWebSocket(null);
+            });
+
+            connection.addEventListener("open", (_event) => {
+              console.log("WebSocket connection opened");
+            });
+        }
+
+        // Use API to get back room info (Not implemented yet)
+        roomName = "Please call the API again"
+        roomSize = 20
+        roomId = "ERROR"
+
+    }
 
     // Build initial Map of players in the lobby
     const initialPlayers = new Map<number, { name: string, avatar: string }>()
@@ -96,7 +132,16 @@ function LobbyPage() {
 
     return (
         <>
-            <div className="flex justify-center">
+             <div className="flex flex-col items-center justify-center pt-4">
+                <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-gray-100 mb-4">
+                    Code: {roomId}
+                </h1>
+                <p className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100 mb-4">
+                  {roomName}
+                </p>
+                <p className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100 mb-4">
+                  Players: {playerMap.size} / {roomSize}
+                </p>
                 <div>
                     <Card className="w-[350px]">
                         <CardHeader>
@@ -150,9 +195,9 @@ function LobbyPage() {
                                                 <FormItem>
                                                     <FormControl>
                                                         <Textarea
-                                                        placeholder="Type your message here."
-                                                        className="resize-none"
-                                                        {...field}
+                                                            placeholder="Type your message here."
+                                                            className="resize-none"
+                                                            {...field}
                                                         />
                                                     </FormControl>
                                                     <FormMessage />
