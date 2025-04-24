@@ -27,12 +27,12 @@ function CreateLobbyForm({ setOpen }: CreateLobbyFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      roomName: "",
+      roomName: "My Lobby",
       roomSize: 8
     },
   })
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  function onSubmit(values: z.infer<typeof formSchema>) {
 
     console.log("values", values)
 
@@ -43,12 +43,19 @@ function CreateLobbyForm({ setOpen }: CreateLobbyFormProps) {
   
       connection.addEventListener("message", (event) => {
 
-        console.log("Message from server ", atob(event.data.toString().substring(1, event.data.length - 1)));
-        const data = JSON.parse(atob(event.data.toString().substring(1, event.data.length - 1)));
+        console.log("Message from server ", event.data);
+        const data = JSON.parse(event.data);
 
         if(data.message === "Create room Success") {
           setOpen(false);
-          navigate(`/lobby/${data.info.room_id}`);
+          navigate(`/lobby/${data.info.room_id}`, {
+            state: {
+              roomId: data.info.room_id,
+              roomName: values.roomName,
+              roomSize: values.roomSize,
+              players: []
+            }
+          });
         }
 
       });
