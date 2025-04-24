@@ -12,6 +12,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "../components/ui/button";
 import beanbagImage from "../assets/beanbag.png";
+import { useContext, useState } from "react";
+import { WebSocketContext } from "@/context/WebSocketContext";
+import { JoinLobbyAlert } from "@/components/lobby/JoinLobbyAlert";
+import { useNavigate } from "react-router";
+
+const backendWsBaseUrl = import.meta.env.VITE_AUTH0_AUDIENCE.replace(/^https?:\/\//, 'http://')  // This is bad help
 
 const formSchema = z.object({
   roomCode: z.string().min(4).max(4),
@@ -19,6 +25,12 @@ const formSchema = z.object({
 });
 
 function HomePage() {
+
+  const navigate = useNavigate();
+  const { webSocket, setWebSocket } = useContext(WebSocketContext);
+  const [showJoinRoomAlert, setShowJoinRoomAlert] = useState<boolean>(false);
+  const [alertMsg, setAlertMsg] = useState<string>("");;
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -28,41 +40,75 @@ function HomePage() {
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    // Do something with the form values.
-    // ✅ This will be type-safe and validated.
     console.log(values);
 
-    // fetch('http://localhost:8080/api/users', {
-    //   method: 'POST',
-    //   headers: {
-    //     'Content-Type': 'application/json',
-    //   },
-    //   body: JSON.stringify(requestBody),
-    //   mode: 'cors'
-    // })
-    //   .then((response) => {     
-    //     if (!response.ok) {
-    //       throw new Error('Network response was not ok');
-    //     }
-    //     return response.json();
-    //   })
-    //   .then((data) => {     
-    //     console.log('Success:', data);
-    //     // Handle success
-    //   })
-    //   .catch((error) => {
-    //     console.error('Error:', error);
-    //     // Handle error
-    //   });
+    if (webSocket === null) {
+
+      const connection = new WebSocket(`${backendWsBaseUrl}/ws`);
+      setWebSocket(connection);
+
+      connection.addEventListener("message", (event) => {
+
+        console.log("Message from server ", event.data);
+        const data = JSON.parse(event.data);
+
+        if (data.message === "Join room Success") {
+
+          navigate(`/lobby/${values.roomCode}`, {
+            state: {
+              roomId: values.roomCode,
+              roomName: data.info.room_name,
+              roomSize: data.info.room_size,
+              players: data.info.users_info
+            }
+          });
+
+        } else {
+
+          if (data.message === "Join room failed: Room not found") {
+            setAlertMsg("Room not found");
+
+          } else if (data.message === "Join room failed: Room is full") {
+            setAlertMsg("Room is full");
+
+          } else if (data.message === "Join room failed: You have already joined a room") {
+            setAlertMsg("You have already joined a room - but you are on the homepage?");
+
+          } else {
+            setAlertMsg(`Catastrophic error - please sev1 Ivan. Error: ${data.message}`);
+          }
+          setShowJoinRoomAlert(!showJoinRoomAlert);
+
+        }
+
+      });
+
+      connection.addEventListener("close", (_event) => {
+        setWebSocket(null);
+      });
+
+      connection.addEventListener("open", (_event) => {
+        connection.send(JSON.stringify({
+          type: "join_room",
+          info: {
+            room_id: values.roomCode,
+            name: values.name
+          }
+        }))
+
+      })
+    }
+
   }
 
   return (
     <div className="flex flex-col items-center py-10">
-      <img 
-      src={beanbagImage} 
-      className="w-64 mb-4"
-      alt="Beanbag"
+      <img
+        src={beanbagImage}
+        className="w-64 mb-4"
+        alt="Beanbag"
       />
+      {showJoinRoomAlert && (<JoinLobbyAlert msg={alertMsg} />)}
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-md">
           <FormField
