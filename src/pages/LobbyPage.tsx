@@ -22,12 +22,10 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Textarea } from "@/components/ui/textarea"
-import { WebSocketContext } from "@/context/WebSocketContext"
+import { useWebSocket } from "@/context/WebSocketContext" // Changed import
 import avatarPlaceholder from "../assets/avatar_placeholder.png"
-import { useLocation } from "react-router"
-
-
-const backendWsBaseUrl = import.meta.env.VITE_AUTH0_AUDIENCE.replace(/^https?:\/\//, 'ws://')  // This is bad help
+import { useParams } from "react-router"; // Use useParams to get lobbyId from URL
+import { useEffect } from "react"; // Import useEffect
 
 // Messages
 interface Message {
@@ -35,7 +33,8 @@ interface Message {
   message: string
 }
 
-const messages: Message[] = []
+const messages: Message[] = [] // This will likely need to be managed by the context later
+
 const ChatFormSchema = z.object({
   bio: z
     .string()
@@ -46,6 +45,7 @@ const ChatFormSchema = z.object({
 
 function onSubmit(data: z.infer<typeof ChatFormSchema>) {
   console.log(data)
+  // TODO: Send chat message via WebSocket
 }
 
 // Player
@@ -57,84 +57,92 @@ interface Player {
 
 function LobbyPage() {
 
-  const { webSocket, setWebSocket } = useContext(WebSocketContext);
-  const location = useLocation();
+  const { lobbyId } = useParams<{ lobbyId: string }>(); // Get lobbyId from URL
+  const { roomDetails, isConnected, error } = useWebSocket(); // Use hook to get context values
 
-  // Scary that these aren't immutable
-  var roomId = location.state?.roomId  // I cannot get this from the URL as we are using HashRouter
-  var roomName = location.state?.roomName
-  var roomSize = location.state?.roomSize
-  var players: Player[] = location.state?.players
-
-
-  // I joined directly from the URL
-  if (location.state === null) {
-
-    // Probably need to display a Dialog box to login/ choose a Name
-
-    // Reopen websocket connection if closed
-    if (webSocket === null) {
-      const connection = new WebSocket(`${backendWsBaseUrl}/ws`);
-      setWebSocket(connection);
-
-      connection.addEventListener("close", (_event) => {
-        setWebSocket(null);
-      });
-
-      connection.addEventListener("open", (_event) => {
-        console.log("WebSocket connection opened");
-      });
+  // Effect to handle cases where roomDetails is not available (e.g., direct access or refresh)
+  useEffect(() => {
+    if (!roomDetails && !error && isConnected) {
+      // If connected but no room details, this might indicate a direct access/refresh.
+      // A more robust solution would attempt to rejoin or fetch room details here.
+      // For now, we'll just log a message.
+      console.log("WebSocket connected but no room details available. Consider rejoining or fetching room info.");
+      // TODO: Implement logic to rejoin or fetch room details based on lobbyId from URL
+      // Example: connectAndJoinRoom(lobbyId, userName); // Need userName here
+    } else if (!roomDetails && !isConnected && !error) {
+        // If not connected and no room details, and no error, maybe show a loading state?
+         console.log("WebSocket not connected and no room details available.");
     }
+  }, [roomDetails, isConnected, error, lobbyId]);
 
-    // Use API to get back room info (Not implemented yet)
-    roomName = "Please call the API again"
-    roomSize = 20
-    roomId = "ERROR"
+  // Effect to update player list when roomDetails changes
+  useEffect(() => {
+    if (roomDetails) {
+      const updatedPlayers = new Map<string, { name: string, avatar: string }>();
+      roomDetails.players.forEach((player) => {
+        // Only add players who are not the host to the map
+        if (player.user_id !== roomDetails.host_id) {
+          updatedPlayers.set(player.user_id, { name: player.user_name, avatar: avatarPlaceholder });
+        }
+      });
+      setPlayerMap(updatedPlayers);
+    }
+  }, [roomDetails, isConnected, error, lobbyId]); // Dependency array includes roomDetails, isConnected, error, lobbyId
 
+  // Effect to update player list when roomDetails changes
+  useEffect(() => {
+    console.log("roomDetails changed:", roomDetails); // Log roomDetails
+    if (roomDetails) {
+      const updatedPlayers = new Map<string, { name: string, avatar: string }>();
+      roomDetails.players.forEach((player) => {
+        // Only add players who are not the host to the map
+        if (player.user_id !== roomDetails.host_id) {
+          updatedPlayers.set(player.user_id, { name: player.user_name, avatar: avatarPlaceholder });
+        } else {
+          console.log("Skipping host:", player.user_name, player.user_id); // Log when host is skipped
+        }
+      });
+      console.log("Updated playerMap:", updatedPlayers); // Log the resulting map
+      setPlayerMap(updatedPlayers);
+    } else {
+      // Clear player map if roomDetails becomes null (e.g., on disconnect)
+      console.log("roomDetails is null, clearing playerMap.");
+      setPlayerMap(new Map());
+    }
+  }, [roomDetails]); // Dependency array includes roomDetails
+
+
+  // Display loading or error state if roomDetails is not available
+  if (!roomDetails) {
+    if (error) {
+      return <div className="flex justify-center items-center h-screen text-red-500">Error: {error}</div>;
+    }
+    // You might want a more sophisticated loading indicator
+    return <div className="flex justify-center items-center h-screen">Loading room details...</div>;
   }
 
-  // Build initial Map of players in the lobby
-  const initialPlayers = new Map<string, { name: string, avatar: string }>()
-  players.forEach((player) => {
-    initialPlayers.set(player.user_id, { name: player.user_name, avatar: avatarPlaceholder })
-  })
-  const [playerMap, setPlayerMap] = useState(initialPlayers)
+  // Note: playerMap and messagesList state will need to be updated
+  // based on incoming WebSocket messages handled in the context.
+  // playerMap is now managed by the useEffect hook.
+  const [playerMap, setPlayerMap] = useState<Map<string, { name: string, avatar: string }>>(new Map());
   const [messagesList, _setMessagesList] = useState(messages)
-
-  webSocket?.addEventListener("message", (event) => {
-    console.log("Message from server ", event.data);
-    const data = JSON.parse(event.data);
-
-    if(data.type === "room_status_update") {
-      console.log("Room status update received");
-      players = data.users_info
-
-      const updatedPlayers = new Map<string, { name: string, avatar: string }>()
-      players.forEach((player) => {
-        updatedPlayers.set(player.user_id, { name: player.user_name, avatar: avatarPlaceholder })
-      })
-
-      setPlayerMap(updatedPlayers)
-      console.log("Updated players: ", updatedPlayers)
-    }
-  });
-
-
+  
   const form = useForm<z.infer<typeof ChatFormSchema>>({
     resolver: zodResolver(ChatFormSchema),
   })
+
 
   return (
     <>
       <div className="flex flex-col items-center justify-center pt-4">
         <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-gray-100 mb-4">
-          {roomId}
+          {roomDetails.roomId} {/* Use roomDetails from context */}
         </h1>
         <p className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100 mb-4">
-          {roomName}
+          {roomDetails.roomName} {/* Use roomDetails from context */}
         </p>
         <p className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100 mb-4">
-          Players: {playerMap.size} / {roomSize}
+          Players: {playerMap.size} / {roomDetails.roomSize} {/* Use playerMap size for count and roomSize for available slots */}
         </p>
         <div>
           <Card className="w-[350px]">
