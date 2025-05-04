@@ -66,6 +66,7 @@ function LobbyPage() {
   var roomSize = location.state?.roomSize
   var players: Player[] = location.state?.players
 
+
   // I joined directly from the URL
   if (location.state === null) {
 
@@ -97,9 +98,27 @@ function LobbyPage() {
   players.forEach((player) => {
     initialPlayers.set(player.user_id, { name: player.user_name, avatar: avatarPlaceholder })
   })
-
-  const [playerMap, _setPlayerMap] = useState(initialPlayers)
+  const [playerMap, setPlayerMap] = useState(initialPlayers)
   const [messagesList, _setMessagesList] = useState(messages)
+
+  webSocket?.addEventListener("message", (event) => {
+    console.log("Message from server ", event.data);
+    const data = JSON.parse(event.data);
+
+    if(data.type === "room_status_update") {
+      console.log("Room status update received");
+      players = data.users_info
+
+      const updatedPlayers = new Map<string, { name: string, avatar: string }>()
+      players.forEach((player) => {
+        updatedPlayers.set(player.user_id, { name: player.user_name, avatar: avatarPlaceholder })
+      })
+
+      setPlayerMap(updatedPlayers)
+      console.log("Updated players: ", updatedPlayers)
+    }
+  });
+
 
   const form = useForm<z.infer<typeof ChatFormSchema>>({
     resolver: zodResolver(ChatFormSchema),
