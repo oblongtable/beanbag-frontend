@@ -1,4 +1,4 @@
-import { StrictMode, useState } from 'react'
+import { StrictMode } from 'react'
 import HomePage from './pages/HomePage.tsx'
 import { HashRouter, Route, Routes } from 'react-router'
 

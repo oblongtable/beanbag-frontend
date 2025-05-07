@@ -12,16 +12,18 @@ interface WebSocketContextType {
   webSocket: WebSocket | null;
   isConnected: boolean;
   roomDetails: RoomDetails | null;
+  userId: string | null; // Added myId to WebSocketContextType
   connectAndJoinRoom: (roomCode: string, name: string) => void;
   connectAndCreateRoom: (roomName: string, roomSize: number, name: string) => void; // Added create room function
   disconnect: () => void;
-  error: string | null; 
+  error: string | null;
 }
 
 export const WebSocketContext = createContext<WebSocketContextType>({
   webSocket: null,
   isConnected: false,
   roomDetails: null,
+  userId: null, // Added myId to default value
   connectAndJoinRoom: () => {},
   connectAndCreateRoom: () => {}, // Added create room function
   disconnect: () => {},
@@ -36,6 +38,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [webSocket, setWebSocket] = useState<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [roomDetails, setRoomDetails] = useState<RoomDetails | null>(null);
+  const [userId, setUserId] = useState<string | null>(null); // Added myId state
   const [error, setError] = useState<string | null>(null);
 
   const setupWebSocket = () => {
@@ -64,6 +67,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           players: data.info.users_info,
           host_id: data.info.host_id, // Include host_id from the server response
         });
+        setUserId(data.info.user_id); // Set myId from the server response
         // Navigation will happen in the component consuming the context
       } else if (data.message && (data.message.startsWith("Join room failed:") || data.message.startsWith("Create room failed:"))) {
         setError(data.message);
@@ -98,6 +102,8 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       setRoomDetails(null);
       if (!event.wasClean) {
         setError(`WebSocket connection closed unexpectedly. Code: ${event.code}, Reason: ${event.reason}`);
+      } else {
+        setError(null);
       }
     };
 
@@ -170,7 +176,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
 
   return (
-    <WebSocketContext.Provider value={{ webSocket, isConnected, roomDetails, connectAndJoinRoom, connectAndCreateRoom, disconnect, error }}>
+    <WebSocketContext.Provider value={{ webSocket, isConnected, roomDetails, userId, connectAndJoinRoom, connectAndCreateRoom, disconnect, error }}>
       {children}
     </WebSocketContext.Provider>
   );
