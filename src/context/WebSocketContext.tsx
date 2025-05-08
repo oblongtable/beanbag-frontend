@@ -31,7 +31,7 @@ export const WebSocketContext = createContext<WebSocketContextType>({
 });
 
 // const backendWsBaseUrl = import.meta.env.VITE_AUTH0_AUDIENCE.replace(/^https?:\/\//, 'ws://'); // Use ws:// or wss:// for websockets
-const backendWsBaseUrl = "ws://localhost:8080/api"
+const backendWsBaseUrl = "ws://localhost:8080"
 
 
 export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {

@@ -4,6 +4,7 @@ import { Auth0Provider } from '@auth0/auth0-react';
 import App from './App.tsx';
 import './index.css'
 import { WebSocketProvider } from './context/WebSocketContext.tsx'; // Import WebSocketProvider
+import { UserProvider } from './context/UserContext.tsx'; // Import UserProvider
 
 const container = document.getElementById('root');
 const root = createRoot(container!);
@@ -31,7 +32,9 @@ root.render(
     {...providerConfig}
   >
     <WebSocketProvider> {/* Wrap App with WebSocketProvider */}
-      <App />
+      <UserProvider> {/* Wrap App with UserProvider */}
+        <App />
+      </UserProvider>
     </WebSocketProvider>
   </Auth0Provider>,
 );

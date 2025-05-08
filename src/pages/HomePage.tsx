@@ -10,35 +10,35 @@ import {
 import { Input } from "../components/ui/input";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Button } from "../components/ui/button";
 import beanbagImage from "../assets/beanbag.png";
 import { useEffect, useState } from "react";
 import { useWebSocket } from "@/context/WebSocketContext";
 import { JoinLobbyAlert } from "@/components/lobby/JoinLobbyAlert";
 import { useNavigate } from "react-router";
+import { useUser } from "@/context/UserContext";
+import { Button } from "@/components/ui/button";
 
 const formSchema = z.object({
-  roomCode: z.string().min(4).max(4),
-  name: z.string().min(1).max(20),
+  roomCode: z.string().min(4).max(4)
 });
 
 function HomePage() {
 
   const navigate = useNavigate();
   const { connectAndJoinRoom, roomDetails, error } = useWebSocket();
+  const { userName } = useUser();
   const [alertMsg, setAlertMsg] = useState<string>("");
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       roomCode: "",
-      name: "",
     },
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     console.log(values);
-    connectAndJoinRoom(values.roomCode, values.name);
+    connectAndJoinRoom(values.roomCode, userName!);
   }
 
   useEffect(() => {
@@ -71,19 +71,6 @@ function HomePage() {
                 <FormLabel>Room Code</FormLabel>
                 <FormControl>
                   <Input placeholder="Enter 4 letter room code" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Name</FormLabel>
-                <FormControl>
-                  <Input placeholder="John Doe" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

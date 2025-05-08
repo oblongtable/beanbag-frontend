@@ -14,21 +14,42 @@ import LogoutButton from "./auth/LogoutButton";
 import { useState } from "react";
 import { Button } from "./ui/button";
 import CreateLobbyForm from "./lobby/CreateLobbyForm";
+import { useUser } from "@/context/UserContext";
+import { useWebSocket } from "@/context/WebSocketContext";
 
 function Header() {
   const { user, isAuthenticated } = useAuth0();
+  const { webSocket } = useWebSocket()
+  const { userName } = useUser();
   const isLoggedIn = isAuthenticated && user;
+  const hasUserName = user?.name || userName;
   const [open, setOpen] = useState(false)
 
 
   return (
     <header className="flex items-center justify-between px-4 py-3 bg-blue-500">
       <div className="flex items-center space-x-8">
+        <Link to={{ pathname: "/" }}>
+          <img src={logo} alt="Oblong Table" className="h-10" />
+        </Link>
+        {hasUserName && webSocket === null && (
+            <>
+              <Dialog open={open} onOpenChange={setOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline">Create Lobby</Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                  <DialogHeader>
+                    <DialogTitle>Create Lobby</DialogTitle>
+                    <DialogDescription>Create a lobby to play with your friends</DialogDescription>
+                  </DialogHeader>
+                  <CreateLobbyForm setOpen={setOpen} userName={"host"}/>
+                </DialogContent>
+              </Dialog>
+            </>
+          )}
         {isLoggedIn && (
           <>
-            <Link to={{ pathname: "/" }}>
-              <img src={logo} alt="Oblong Table" className="h-10" />
-            </Link>
             <Link
               to={{
                 pathname: "/create-quiz",
@@ -43,18 +64,6 @@ function Header() {
             >
               Test API
             </Link>
-            <Dialog open={open} onOpenChange={setOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline">Create Lobby</Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle>Create Lobby</DialogTitle>
-                  <DialogDescription>Create a lobby to play with your friends</DialogDescription>
-                </DialogHeader>
-                <CreateLobbyForm setOpen={setOpen} userName={"host"}/>
-              </DialogContent>
-            </Dialog>
           </>
           )}
         </div>

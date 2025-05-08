@@ -1,6 +1,7 @@
 import { useState } from "react";
 import beanbagImage from "../assets/beanbag.png";
 import { Button } from "../components/ui/button";
+import { useUser } from "../context/UserContext"; // Import useUser
 import {
   Dialog,
   DialogContent,
@@ -15,18 +16,19 @@ import { Label } from "../components/ui/label";
 import LoginButton from "../components/auth/LoginButton"; // Added import
 
 function WelcomePage() {
-  const [name, setName] = useState("");
+  const [inputName, setInputName] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { setUserName } = useUser();
 
   const handlePlayClick = () => {
     setIsDialogOpen(true);
   };
 
   const handleNameSubmit = () => {
-    // Here you would typically do something with the name,
-    // like saving it to state or sending it to a backend.
-    console.log("User's name:", name);
-    setIsDialogOpen(false);
+    if (inputName.trim()) {
+      setUserName(inputName.trim());
+      setIsDialogOpen(false);
+    }
   };
 
   return (
@@ -52,8 +54,8 @@ function WelcomePage() {
               </Label>
               <Input
                 id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                value={inputName}
+                onChange={(e) => setInputName(e.target.value)}
                 className="col-span-3"
                 placeholder="Your awesome name"
               />
