@@ -14,11 +14,12 @@ import {
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import LoginButton from "../components/auth/LoginButton"; // Added import
+import avatarPlaceholder from "../assets/avatar_placeholder.png"
 
 function WelcomePage() {
   const [inputName, setInputName] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const { setUserName } = useUser();
+  const { setUserName, setProfilePicture, setEmail } = useUser();
 
   const handlePlayClick = () => {
     setIsDialogOpen(true);
@@ -27,6 +28,8 @@ function WelcomePage() {
   const handleNameSubmit = () => {
     if (inputName.trim()) {
       setUserName(inputName.trim());
+      setProfilePicture(avatarPlaceholder);
+      setEmail("Guest");
       setIsDialogOpen(false);
     }
   };
@@ -36,7 +39,7 @@ function WelcomePage() {
       <img src={beanbagImage} className="w-64 mb-8" alt="Beanbag" />
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogTrigger asChild>
-          <Button variant="default" size="lg" onClick={handlePlayClick}>
+          <Button variant="default" size="lg" onClick={handlePlayClick} className="text-white rounded text-3xl px-20 py-7">
             Play
           </Button>
         </DialogTrigger>

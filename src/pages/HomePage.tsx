@@ -55,6 +55,7 @@ function HomePage() {
 
   return (
     <div className="flex flex-col items-center py-10">
+      <h1 className="text-center text-4xl font-bold pb-8">Welcome {userName}!</h1>
       <img
         src={beanbagImage}
         className="w-64 mb-4"
@@ -62,7 +63,7 @@ function HomePage() {
       />
       {error && (<JoinLobbyAlert msg={alertMsg} />)}
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-md">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-sm">
           <FormField
             control={form.control}
             name="roomCode"
