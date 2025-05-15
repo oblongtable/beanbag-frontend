@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect } from "react";
+import React, { createContext, useState, useContext } from "react";
 
 interface RoomDetails {
   roomId: string;
@@ -143,7 +143,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             info: {
                 room_name: roomName,
                 room_size: roomSize,
-                name: name // Assuming the creator also joins the room with a name
+                username: name // Assuming the creator also joins the room with a name
             }
         }));
     } else if (connection) {
@@ -153,7 +153,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 info: {
                     room_name: roomName,
                     room_size: roomSize,
-                    name: name
+                    username: name
                 }
             }));
         }
@@ -162,17 +162,15 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
 
   const disconnect = () => {
+    setRoomDetails(null); // Clear room details on disconnect
+    setUserId(null); // Clear myId on disconnect
+    setIsConnected(false);
+    setError(null); // Clear error on disconnect
     if (webSocket) {
-      webSocket.close();
+      webSocket.close(1000, "Normal Closure"); // Close with code 1000 for normal closure
     }
+    setWebSocket(null); // Clear the WebSocket reference on close
   };
-
-  // Clean up on component unmount
-  useEffect(() => {
-    return () => {
-      disconnect();
-    };
-  }, []);
 
 
   return (

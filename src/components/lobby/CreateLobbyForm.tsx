@@ -7,7 +7,6 @@ import { Input } from "../ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form'
 import { useEffect, useState } from "react"; // Added useEffect and useState
 import { useWebSocket } from "@/context/WebSocketContext"; // Changed import
-import { useNavigate } from "react-router";
 
 const formSchema = z.object({
   roomName: z.string().min(1).max(20),
@@ -22,8 +21,7 @@ interface CreateLobbyFormProps  {
 
 function CreateLobbyForm({ setOpen, userName }: CreateLobbyFormProps) { // Added userName prop
 
-  const navigate = useNavigate();
-  const { webSocket, connectAndCreateRoom, roomDetails, error } = useWebSocket(); // Updated hook usage
+  const { webSocket, connectAndCreateRoom, error } = useWebSocket(); // Updated hook usage
   const [formError, setFormError] = useState<string | null>(null); // State for form-specific errors
   const [isLoading, setIsLoading] = useState<boolean>(false); // State for loading indicator
 
@@ -36,11 +34,12 @@ function CreateLobbyForm({ setOpen, userName }: CreateLobbyFormProps) { // Added
   })
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log("values", values);
     setFormError(null); // Clear previous form errors
     if (webSocket === null) {
       setIsLoading(true); // Start loading
       connectAndCreateRoom(values.roomName, values.roomSize, userName); // Use connectAndCreateRoom
+      setIsLoading(false)
+      setOpen(false); // Close the modal
     } else {
       // Handle case where websocket is already connected but not in a room?
       // For now, assume if websocket is connected, we are in a room or joining.
@@ -49,15 +48,6 @@ function CreateLobbyForm({ setOpen, userName }: CreateLobbyFormProps) { // Added
       setFormError("Already connected to a WebSocket. Please refresh if you are not in a room.");
     }
   }
-
-  // Effect to handle navigation after successful room creation
-  useEffect(() => {
-    if (roomDetails) {
-      setIsLoading(false); // Stop loading on success
-      setOpen(false); // Close the modal
-      navigate(`/lobby/${roomDetails.roomId}`); // Navigate without state
-    }
-  }, [roomDetails, navigate, setOpen]);
 
   // Effect to handle errors from the WebSocket context
   useEffect(() => {
@@ -92,22 +82,22 @@ function CreateLobbyForm({ setOpen, userName }: CreateLobbyFormProps) { // Added
             name="roomSize"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Room Size</FormLabel>
-                <FormControl>
-                  <Input type="number" placeholder="Enter a room size" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-        {formError && <p className="text-red-500 text-sm">{formError}</p>} {/* Display form errors */}
-        <Button type="submit" disabled={isLoading}> {/* Disable button when loading */}
-          {isLoading ? 'Creating...' : 'Create Lobby'} {/* Optional: Change button text */}
-        </Button>
-      </form>
-    </Form>
-  )
+            <FormLabel>Room Size</FormLabel>
+            <FormControl>
+              <Input type="number" placeholder="Enter a room size" {...field} onChange={e => field.onChange(Number(e.target.value))} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+    </div>
+    {formError && <p className="text-red-500 text-sm">{formError}</p>} {/* Display form errors */}
+    <Button type="submit" disabled={isLoading}> {/* Disable button when loading */}
+      {isLoading ? 'Creating...' : 'Create Lobby'} {/* Optional: Change button text */}
+    </Button>
+  </form>
+</Form>
+)
 }
 
 export default CreateLobbyForm

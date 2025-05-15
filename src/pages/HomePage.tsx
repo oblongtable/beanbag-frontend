@@ -37,7 +37,6 @@ function HomePage() {
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values);
     connectAndJoinRoom(values.roomCode, userName!);
   }
 
