@@ -1,11 +1,18 @@
+import Role from "@/enum/role";
 import React, { createContext, useState, useContext } from "react";
+
+
+interface Player {
+  user_id: string;
+  user_name: string;
+  role: Role;
+}
 
 interface RoomDetails {
   roomId: string;
   roomName: string;
   roomSize: number;
-  players: any[]; // Define a proper type for players if possible
-  host_id: string; // Add host_id to RoomDetails interface
+  players: Player[];
 }
 
 interface WebSocketContextType {
@@ -64,8 +71,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           roomId: data.info.room_id, // Use room_id from the server response
           roomName: data.info.room_name,
           roomSize: data.info.room_size,
-          players: data.info.users_info,
-          host_id: data.info.host_id, // Include host_id from the server response
+          players: data.info.users_info
         });
         setUserId(data.info.user_id); // Set myId from the server response
         // Navigation will happen in the component consuming the context

@@ -13,11 +13,13 @@ import { useWebSocket } from "@/context/WebSocketContext" // Changed import
 import avatarPlaceholder from "../assets/avatar_placeholder.png"
 import {  useNavigate } from "react-router-dom"; // Use useParams and useNavigate from react-router-dom
 import { useEffect } from "react"; // Import useEffect
+import Role from "@/enum/role"
 
 
 function LobbyPage() {
   const navigate = useNavigate(); // Reinstate useNavigate
   const { roomDetails, userId } = useWebSocket();
+  const [isHost, setIsHost] = useState(false);
 
   // Effect to update player list when roomDetails changes
   useEffect(() => {
@@ -25,8 +27,12 @@ function LobbyPage() {
       const updatedPlayers = new Map<string, { name: string, avatar: string }>();
       roomDetails.players.forEach((player) => {
         // Only add players who are not the host to the map
-        if (player.user_id !== roomDetails.host_id) {
+        if (player.role !== Role.CREATOR) {
           updatedPlayers.set(player.user_id, { name: player.user_name, avatar: avatarPlaceholder });
+        }
+
+        if(player.role === Role.HOST && player.user_id === userId) {
+          setIsHost(true);
         }
         
       });
@@ -59,7 +65,7 @@ function LobbyPage() {
           Assuming the first player in the players array is the current user.
           In a real application, the current user's ID should be obtained from an authentication context or similar reliable source.
         */}
-        {userId && roomDetails && roomDetails.players.length > 1 && roomDetails.players[1].user_id === userId && (
+        {isHost && (
           <div className="flex space-x-4 mb-4">
             <Button>Edit Config</Button>
             <Button>Start Quiz</Button>
