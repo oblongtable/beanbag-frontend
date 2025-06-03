@@ -24,17 +24,21 @@ interface WebSocketContextType {
   connectAndCreateRoom: (roomName: string, roomSize: number, name: string) => void; // Added create room function
   disconnect: () => void;
   error: string | null;
+  roomClosedEvent: boolean;
+  resetRoomClosedEvent: () => void;
 }
 
 export const WebSocketContext = createContext<WebSocketContextType>({
   webSocket: null,
   isConnected: false,
   roomDetails: null,
-  userId: null, // Added myId to default value
+  userId: null,
   connectAndJoinRoom: () => {},
-  connectAndCreateRoom: () => {}, // Added create room function
+  connectAndCreateRoom: () => {},
   disconnect: () => {},
   error: null,
+  roomClosedEvent: false,
+  resetRoomClosedEvent: () => {},
 });
 
 // const backendWsBaseUrl = import.meta.env.VITE_AUTH0_AUDIENCE.replace(/^https?:\/\//, 'ws://'); // Use ws:// or wss:// for websockets
@@ -45,8 +49,9 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [webSocket, setWebSocket] = useState<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [roomDetails, setRoomDetails] = useState<RoomDetails | null>(null);
-  const [userId, setUserId] = useState<string | null>(null); // Added myId state
+  const [userId, setUserId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [roomClosedEvent, setRoomClosedEvent] = useState<boolean>(false);
 
   const setupWebSocket = () => {
     if (webSocket) {
@@ -89,6 +94,13 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           }
           return null; // Or handle the case where prevDetails is null if necessary
         });
+      } else if (data.type === "room_shutdown") {
+        console.log("Room shutdown message received.");
+        setRoomClosedEvent(true);
+        // Delay disconnecting to allow state to propagate and trigger dialog in HomePage
+        setTimeout(() => {
+          disconnect();
+        }, 50); // Adjust delay as needed
       }
       // Handle other message types here later (e.g., game state updates)
     };
@@ -115,6 +127,10 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     setWebSocket(connection);
     return connection;
+  };
+
+  const resetRoomClosedEvent = () => {
+    setRoomClosedEvent(false);
   };
 
 
@@ -180,7 +196,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
 
   return (
-    <WebSocketContext.Provider value={{ webSocket, isConnected, roomDetails, userId, connectAndJoinRoom, connectAndCreateRoom, disconnect, error }}>
+    <WebSocketContext.Provider value={{ webSocket, isConnected, roomDetails, userId, connectAndJoinRoom, connectAndCreateRoom, disconnect, error, roomClosedEvent, resetRoomClosedEvent }}>
       {children}
     </WebSocketContext.Provider>
   );
