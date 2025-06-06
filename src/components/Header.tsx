@@ -136,6 +136,7 @@ function Header() {
           // No User: Show Auth0 Login Button
           <LoginButton className={cn(buttonVariants({ variant: "ghost" }), "hover:bg-blue-400 hover:text-white")} />
         )}
+        <Button onClick={() => navigate('/play-test')}>Play</Button>
       </div>
 
       {/* Leave Lobby Confirmation Dialog */}

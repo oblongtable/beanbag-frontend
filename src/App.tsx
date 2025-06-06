@@ -7,6 +7,7 @@ import CreateQuiz from './pages/CreateQuiz.tsx'
 import LobbyPage from './pages/LobbyPage.tsx'
 import Profile from './pages/Profile.tsx'
 import ApiTester from './pages/TestApi.tsx'
+import PlayScreen from './components/play-quiz/PlayScreen.tsx'
 
 const App = () => {
 
@@ -20,6 +21,7 @@ const App = () => {
             <Route path='/lobby/:lobbyId' element={<LobbyPage />} />
             <Route path='/profile' element={<Profile />} />
             <Route path='/test-api' element={<ApiTester />} />
+            <Route path='/play-test' element={<PlayScreen questionText='How big is a dog?' answers={[{text: "Big", isCorrect: true}, {text: "Small", isCorrect: false}, {text: "Medium", isCorrect: false}, {text: "Large", isCorrect: false}]} timer={20}/>} />
           </Route>
         </Routes>
       </HashRouter>
