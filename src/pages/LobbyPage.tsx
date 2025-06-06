@@ -18,7 +18,7 @@ import Role from "@/enum/role"
 
 function LobbyPage() {
   const navigate = useNavigate();
-  const { roomDetails, userId } = useWebSocket();
+  const { roomDetails } = useWebSocket();
   const [isHost, setIsHost] = useState(false);
 
   // Effect to update player list when roomDetails changes
@@ -31,7 +31,7 @@ function LobbyPage() {
           updatedPlayers.set(player.user_id, { name: player.user_name, avatar: avatarPlaceholder });
         }
 
-        if(player.role === Role.HOST && player.user_id === userId) {
+        if(player.role === Role.HOST && player.user_id === roomDetails.userId) {
           setIsHost(true);
         }
 
@@ -42,7 +42,7 @@ function LobbyPage() {
       // Navigate to home page
       navigate("/");
     }
-  }, [roomDetails, userId, navigate]);
+  }, [roomDetails, navigate]);
 
   const [playerMap, setPlayerMap] = useState<Map<string, { name: string, avatar: string }>>(new Map());
 

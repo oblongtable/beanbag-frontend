@@ -19,11 +19,11 @@ interface CreateLobbyFormProps  {
   userName: string; // Added userName prop
 }
 
-function CreateLobbyForm({ setOpen, userName }: CreateLobbyFormProps) { // Added userName prop
+function CreateLobbyForm({ setOpen, userName }: CreateLobbyFormProps) {
 
-  const { webSocket, connectAndCreateRoom, error } = useWebSocket(); // Updated hook usage
-  const [formError, setFormError] = useState<string | null>(null); // State for form-specific errors
-  const [isLoading, setIsLoading] = useState<boolean>(false); // State for loading indicator
+  const { webSocket, createRoom, error } = useWebSocket();
+  const [formError, setFormError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -34,12 +34,12 @@ function CreateLobbyForm({ setOpen, userName }: CreateLobbyFormProps) { // Added
   })
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    setFormError(null); // Clear previous form errors
+    setFormError(null);
     if (webSocket === null) {
-      setIsLoading(true); // Start loading
-      connectAndCreateRoom(values.roomName, values.roomSize, userName); // Use connectAndCreateRoom
+      setIsLoading(true);
+      createRoom(values.roomName, values.roomSize, userName);
       setIsLoading(false)
-      setOpen(false); // Close the modal
+      setOpen(false);
     } else {
       // Handle case where websocket is already connected but not in a room?
       // For now, assume if websocket is connected, we are in a room or joining.
@@ -49,11 +49,10 @@ function CreateLobbyForm({ setOpen, userName }: CreateLobbyFormProps) { // Added
     }
   }
 
-  // Effect to handle errors from the WebSocket context
   useEffect(() => {
     if (error) {
-      setIsLoading(false); // Stop loading on error
-      setFormError(error); // Display WebSocket errors in the form
+      setIsLoading(false);
+      setFormError(error);
     }
   }, [error]);
 
@@ -91,9 +90,9 @@ function CreateLobbyForm({ setOpen, userName }: CreateLobbyFormProps) { // Added
         )}
       />
     </div>
-    {formError && <p className="text-red-500 text-sm">{formError}</p>} {/* Display form errors */}
-    <Button type="submit" disabled={isLoading}> {/* Disable button when loading */}
-      {isLoading ? 'Creating...' : 'Create Lobby'} {/* Optional: Change button text */}
+    {formError && <p className="text-red-500 text-sm">{formError}</p>}
+    <Button type="submit" disabled={isLoading}>
+      {isLoading ? 'Creating...' : 'Create Lobby'}
     </Button>
   </form>
 </Form>

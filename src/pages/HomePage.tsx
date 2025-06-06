@@ -33,7 +33,7 @@ const formSchema = z.object({
 function HomePage() {
 
   const navigate = useNavigate();
-  const { connectAndJoinRoom, roomDetails, error, roomClosedEvent, resetRoomClosedEvent } = useWebSocket();
+  const { joinRoom, roomDetails, error, roomClosedEvent } = useWebSocket();
   const { userName } = useUser();
   const [alertMsg, setAlertMsg] = useState<string>("");
   const [isRoomClosedDialogVisible, setIsRoomClosedDialogVisible] = useState<boolean>(false);
@@ -46,7 +46,7 @@ function HomePage() {
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    connectAndJoinRoom(values.roomCode, userName!);
+    joinRoom(values.roomCode, userName!);
   }
 
   useEffect(() => {
@@ -61,13 +61,11 @@ function HomePage() {
     }
   }, [error]);
 
-  // Effect to show the room closed dialog when the event from context is triggered
   useEffect(() => {
     if (roomClosedEvent) {
       setIsRoomClosedDialogVisible(true);
-      resetRoomClosedEvent(); // Reset the context event immediately
     }
-  }, [roomClosedEvent, resetRoomClosedEvent]);
+  }, [roomClosedEvent]);
 
 
   return (

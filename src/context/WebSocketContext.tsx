@@ -1,6 +1,68 @@
 import Role from "@/enum/role";
-import React, { createContext, useState, useContext } from "react";
+import React, { createContext, useState, useContext, useCallback } from "react";
 
+
+enum MessageType {
+  JOIN_ROOM = "join_room",
+  JOIN_ROOM_SUCESS = "join_room_success",
+  JOIN_ROOM_FAILED = "join_room_failed",
+  CREATE_ROOM = "create_room",
+  CREATE_ROOM_SUCESS = "create_room_success",
+  CREATE_ROOM_FAILED = "create_room_failed",
+  ROOM_STATUS_UPDATE = "room_status_update",
+  ROOM_SHUTDOWN = "room_shutdown",
+  START_GAME = "start_game",
+
+}
+
+interface BaseWebSocketMessage {
+  type: MessageType;
+  message: string
+}
+
+interface JoinRoomSuccessMessage extends BaseWebSocketMessage  {
+  type: MessageType.JOIN_ROOM_SUCESS,
+  info: {
+    roomId: string,
+    roomName: string,
+    roomSize: number,
+    user_info: Player[],
+    user_id: string
+    host_id: string
+  }
+}
+
+interface CreateRoomSucess extends BaseWebSocketMessage {
+  type: MessageType.CREATE_ROOM_SUCESS,
+  info: {
+    roomId: string,
+    roomName: string,
+    roomSize: number,
+    user_info: Player[]
+    user_id: string
+    host_id: string
+  }
+}
+
+interface CreateRoomFailedMessage extends BaseWebSocketMessage {
+  type: MessageType.CREATE_ROOM_FAILED,
+}
+
+interface JoinRoomFailedMessage extends BaseWebSocketMessage {
+  type: MessageType.JOIN_ROOM_FAILED,
+}
+
+interface RoomShutdownMessage extends BaseWebSocketMessage {
+  type: MessageType.ROOM_SHUTDOWN,
+}
+
+interface RoomStatusUpdate extends BaseWebSocketMessage {
+  type: MessageType.ROOM_STATUS_UPDATE,
+  users_info: Player[],
+  host_id: string
+}
+
+export type WebSocketMessage = JoinRoomSuccessMessage | CreateRoomSucess | CreateRoomFailedMessage | RoomStatusUpdate | JoinRoomFailedMessage | RoomShutdownMessage;
 
 interface Player {
   user_id: string;
@@ -13,111 +75,125 @@ interface RoomDetails {
   roomName: string;
   roomSize: number;
   players: Player[];
+  hostId: string;
+  userId: string
 }
 
 interface WebSocketContextType {
   webSocket: WebSocket | null;
   isConnected: boolean;
   roomDetails: RoomDetails | null;
-  userId: string | null; // Added myId to WebSocketContextType
-  connectAndJoinRoom: (roomCode: string, name: string) => void;
-  connectAndCreateRoom: (roomName: string, roomSize: number, name: string) => void; // Added create room function
+  joinRoom: (roomCode: string, name: string) => void;
+  createRoom: (roomName: string, roomSize: number, name: string) => void;
   disconnect: () => void;
   error: string | null;
   roomClosedEvent: boolean;
-  resetRoomClosedEvent: () => void;
+  lastMessage: WebSocketMessage | null;
 }
 
 export const WebSocketContext = createContext<WebSocketContextType>({
   webSocket: null,
   isConnected: false,
   roomDetails: null,
-  userId: null,
-  connectAndJoinRoom: () => {},
-  connectAndCreateRoom: () => {},
+  joinRoom: () => {},
+  createRoom: () => {},
   disconnect: () => {},
   error: null,
   roomClosedEvent: false,
-  resetRoomClosedEvent: () => {},
+  lastMessage: null
 });
 
 // const backendWsBaseUrl = import.meta.env.VITE_AUTH0_AUDIENCE.replace(/^https?:\/\//, 'ws://'); // Use ws:// or wss:// for websockets
 const backendWsBaseUrl = import.meta.env.VITE_WEBSOCKET_URL || "wss://beanbag-backend-production.up.railway.app"
 
-
 export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [webSocket, setWebSocket] = useState<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [roomDetails, setRoomDetails] = useState<RoomDetails | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [roomClosedEvent, setRoomClosedEvent] = useState<boolean>(false);
+  const [roomClosed, setRoomClosed] = useState<boolean>(false);
+  const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
 
-  const setupWebSocket = () => {
+  const connect = useCallback((onOpenCallback: (socket: WebSocket) => void) => {
     if (webSocket) {
-      console.log("WebSocket already connected.");
-      return webSocket;
+      if (webSocket.readyState === WebSocket.OPEN) {
+          onOpenCallback(webSocket);
+      } else {
+          webSocket.addEventListener('open', () => onOpenCallback(webSocket), { once: true });
+      }
+      return;
     }
 
-    setError(null); // Clear previous errors
-    const connection = new WebSocket(`${backendWsBaseUrl}/ws`);
+    const newWebsocket = new WebSocket(`${backendWsBaseUrl}/ws`);
 
-    connection.onopen = () => {
+    newWebsocket.onopen = () => {
       console.log("WebSocket connected.");
       setIsConnected(true);
+      setWebSocket(newWebsocket);
+      onOpenCallback(newWebsocket);
     };
 
-    connection.onmessage = (event) => {
+    newWebsocket.onmessage = (event) => {
       console.log("Message from server ", event.data);
-      const data = JSON.parse(event.data);
+      const data = JSON.parse(event.data) as WebSocketMessage;
+      setLastMessage(data);
 
-      if (data.message === "Join room Success" || data.message === "Create room Success") {
-        setRoomDetails({
-          roomId: data.info.room_id, // Use room_id from the server response
-          roomName: data.info.room_name,
-          roomSize: data.info.room_size,
-          players: data.info.users_info
-        });
-        setUserId(data.info.user_id); // Set myId from the server response
-        // Navigation will happen in the component consuming the context
-      } else if (data.message && (data.message.startsWith("Join room failed:") || data.message.startsWith("Create room failed:"))) {
-        setError(data.message);
-        connection.close(); // Close connection on failure
-      } else if (data.type === "room_status_update") { // Handle room status updates
-        setRoomDetails(prevDetails => {
-          if (prevDetails) {
-            return {
-              ...prevDetails,
-              players: data.users_info, // Update players list
-              host_id: data.host_id, // Include host_id from the server response
-            };
-          }
-          return null; // Or handle the case where prevDetails is null if necessary
-        });
-      } else if (data.type === "room_shutdown") {
-        console.log("Room shutdown message received.");
-        setRoomClosedEvent(true);
-        // Delay disconnecting to allow state to propagate and trigger dialog in HomePage
-        setTimeout(() => {
-          disconnect();
-        }, 50); // Adjust delay as needed
+      switch (data.type) {
+        case MessageType.CREATE_ROOM_SUCESS:
+        case MessageType.JOIN_ROOM_SUCESS:
+          setRoomDetails({
+            roomId: data.info.roomId,
+            roomName: data.info.roomName,
+            roomSize: data.info.roomSize,
+            players: data.info.user_info,
+            hostId: data.info.host_id,
+            userId: data.info.user_id
+          });
+          setRoomClosed(false);
+          break;
+        case MessageType.CREATE_ROOM_FAILED:
+        case MessageType.JOIN_ROOM_FAILED:
+          setError(data.message);
+          newWebsocket.close();
+          break;
+        case MessageType.ROOM_STATUS_UPDATE:
+          setRoomDetails(prevDetails => {
+            if (prevDetails) {
+              return {
+                ...prevDetails,
+                players: data.users_info,
+                host_id: data.host_id,
+              };
+            }
+            return null;
+          });
+          break;
+        case MessageType.ROOM_SHUTDOWN:
+          setRoomClosed(true);
+          setTimeout(() => {
+            disconnect();
+          }, 50)
+          break;
+        default:
+          break;
       }
-      // Handle other message types here later (e.g., game state updates)
     };
 
-    connection.onerror = (event) => {
+    newWebsocket.onerror = (event) => {
       console.error("WebSocket error:", event);
       setError("WebSocket connection error.");
       setIsConnected(false);
+      setRoomClosed(true)
       setWebSocket(null);
       setRoomDetails(null);
     };
 
-    connection.onclose = (event) => {
+    newWebsocket.onclose = (event) => {
       console.log("WebSocket disconnected:", event.code, event.reason);
       setIsConnected(false);
       setWebSocket(null);
       setRoomDetails(null);
+      setRoomClosed(true)
       if (!event.wasClean) {
         setError(`WebSocket connection closed unexpectedly. Code: ${event.code}, Reason: ${event.reason}`);
       } else {
@@ -125,78 +201,38 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }
     };
 
-    setWebSocket(connection);
-    return connection;
-  };
+    setWebSocket(newWebsocket);
+  }, [webSocket]);
 
-  const resetRoomClosedEvent = () => {
-    setRoomClosedEvent(false);
-  };
-
-
-  const connectAndJoinRoom = (roomCode: string, name: string) => {
-    const connection = setupWebSocket();
-    if (connection && connection.readyState === WebSocket.OPEN) {
-       connection.send(JSON.stringify({
+  const joinRoom = (roomCode: string, name: string) => {
+    const message = {
         type: "join_room",
-        info: {
-          room_id: roomCode,
-          name: name
-        }
-      }));
-    } else if (connection) {
-        connection.onopen = () => {
-             connection.send(JSON.stringify({
-                type: "join_room",
-                info: {
-                room_id: roomCode,
-                name: name
-                }
-            }));
-        }
-    }
+        info: { room_id: roomCode, name: name }
+    };
+    connect((socket: WebSocket) => socket.send(JSON.stringify(message)));
+};
+
+const createRoom = (roomName: string, roomSize: number, name: string) => {
+    const message = {
+        type: "create_room",
+        info: { room_name: roomName, room_size: roomSize, username: name }
+    };
+    connect((socket: WebSocket) => socket.send(JSON.stringify(message)));
   };
 
-  const connectAndCreateRoom = (roomName: string, roomSize: number, name: string) => {
-    const connection = setupWebSocket();
-     if (connection && connection.readyState === WebSocket.OPEN) {
-        connection.send(JSON.stringify({
-            type: "create_room",
-            info: {
-                room_name: roomName,
-                room_size: roomSize,
-                username: name // Assuming the creator also joins the room with a name
-            }
-        }));
-    } else if (connection) {
-        connection.onopen = () => {
-            connection.send(JSON.stringify({
-                type: "create_room",
-                info: {
-                    room_name: roomName,
-                    room_size: roomSize,
-                    username: name
-                }
-            }));
-        }
-    }
-  };
-
-
-  const disconnect = () => {
-    setRoomDetails(null); // Clear room details on disconnect
-    setUserId(null); // Clear myId on disconnect
+ const disconnect = () => {
+    setRoomDetails(null); 
     setIsConnected(false);
-    setError(null); // Clear error on disconnect
+    setError(null);
     if (webSocket) {
-      webSocket.close(1000, "Normal Closure"); // Close with code 1000 for normal closure
+      webSocket.close(1000, "Normal Closure"); 
     }
-    setWebSocket(null); // Clear the WebSocket reference on close
+    setWebSocket(null);
   };
 
 
   return (
-    <WebSocketContext.Provider value={{ webSocket, isConnected, roomDetails, userId, connectAndJoinRoom, connectAndCreateRoom, disconnect, error, roomClosedEvent, resetRoomClosedEvent }}>
+    <WebSocketContext.Provider value={{ webSocket, isConnected, roomDetails, joinRoom, createRoom, disconnect, error, roomClosedEvent: roomClosed, lastMessage }}>
       {children}
     </WebSocketContext.Provider>
   );
