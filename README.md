@@ -1,7 +1,9 @@
-# Env variables in (.env.local)
+# Env variables in (.env.local) for dev
 ```
 VITE_AUTH0_DOMAIN=
 VITE_AUTH0_CLIENT_ID=
+VITE_AUTH0_AUDIENCE=http://localhost:8080/api
+VITE_WEBSOCKET_URL=ws://localhost:8080
 ```
 
 # React + TypeScript + Vite

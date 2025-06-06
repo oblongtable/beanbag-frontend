@@ -42,7 +42,7 @@ export const WebSocketContext = createContext<WebSocketContextType>({
 });
 
 // const backendWsBaseUrl = import.meta.env.VITE_AUTH0_AUDIENCE.replace(/^https?:\/\//, 'ws://'); // Use ws:// or wss:// for websockets
-const backendWsBaseUrl = "ws://localhost:8080"
+const backendWsBaseUrl = import.meta.env.VITE_WEBSOCKET_URL || "wss://beanbag-backend-production.up.railway.app"
 
 
 export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
