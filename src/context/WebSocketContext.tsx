@@ -2,7 +2,7 @@ import Role from "@/enum/role";
 import React, { createContext, useState, useContext, useCallback } from "react";
 
 
-enum MessageType {
+export enum MessageType {
   JOIN_ROOM = "join_room",
   JOIN_ROOM_SUCESS = "join_room_success",
   JOIN_ROOM_FAILED = "join_room_failed",
@@ -85,6 +85,7 @@ interface WebSocketContextType {
   roomDetails: RoomDetails | null;
   joinRoom: (roomCode: string, name: string) => void;
   createRoom: (roomName: string, roomSize: number, name: string) => void;
+  startGame: (roomCode: string, name: string) => void;
   disconnect: () => void;
   error: string | null;
   roomClosedEvent: boolean;
@@ -98,6 +99,7 @@ export const WebSocketContext = createContext<WebSocketContextType>({
   joinRoom: () => {},
   createRoom: () => {},
   disconnect: () => {},
+  startGame: () => {},
   error: null,
   roomClosedEvent: false,
   lastMessage: null
@@ -212,6 +214,14 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     connect((socket: WebSocket) => socket.send(JSON.stringify(message)));
 };
 
+const startGame = (roomCode: string, name: string) => {
+  const message = {
+      type: "join_room",
+      info: { room_id: roomCode, name: name }
+  };
+  connect((socket: WebSocket) => socket.send(JSON.stringify(message)));
+};
+
 const createRoom = (roomName: string, roomSize: number, name: string) => {
     const message = {
         type: "create_room",
@@ -232,7 +242,7 @@ const createRoom = (roomName: string, roomSize: number, name: string) => {
 
 
   return (
-    <WebSocketContext.Provider value={{ webSocket, isConnected, roomDetails, joinRoom, createRoom, disconnect, error, roomClosedEvent: roomClosed, lastMessage }}>
+    <WebSocketContext.Provider value={{ webSocket, isConnected, roomDetails, joinRoom, createRoom, startGame, disconnect, error, roomClosedEvent: roomClosed, lastMessage }}>
       {children}
     </WebSocketContext.Provider>
   );
