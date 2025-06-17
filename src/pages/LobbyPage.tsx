@@ -14,12 +14,12 @@ import avatarPlaceholder from "../assets/avatar_placeholder.png"
 import {  useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import Role from "@/enum/role"
+import TitleScreen from "@/components/play-quiz/TitleScreen"; // Import TitleScreen
 
 
 function LobbyPage() {
   const navigate = useNavigate();
-  const { roomDetails, userId } = useWebSocket();
-  const [isHost, setIsHost] = useState(false);
+  const { roomDetails, userId, sendMessage, currentGameState } = useWebSocket(); // Destructure sendMessage and currentGameState
 
   // Effect to update player list when roomDetails changes
   useEffect(() => {
@@ -30,11 +30,6 @@ function LobbyPage() {
         if (player.role !== Role.CREATOR) {
           updatedPlayers.set(player.user_id, { name: player.user_name, avatar: avatarPlaceholder });
         }
-
-        if(player.role === Role.HOST && player.user_id === userId) {
-          setIsHost(true);
-        }
-
       });
       setPlayerMap(updatedPlayers);
     } else {
@@ -46,9 +41,22 @@ function LobbyPage() {
 
   const [playerMap, setPlayerMap] = useState<Map<string, { name: string, avatar: string }>>(new Map());
 
+  const handleStartQuiz = () => {
+    if (roomDetails) {
+      sendMessage("start_quiz", { room_id: roomDetails.roomId });
+    }
+  };
+
   if (!roomDetails){
     console.log("Room details are not available.");
     return null;
+  }
+
+  // Conditionally render TitleScreen if currentGameState is "show_title"
+  if (currentGameState?.type === "show_title" && roomDetails) {
+    const hostPlayer = roomDetails.players.find(player => player.role === Role.HOST);
+    const hostName = hostPlayer ? hostPlayer.user_name : "Unknown Host";
+    return <TitleScreen title={currentGameState.info.title} description={currentGameState.info.description} hostName={hostName} isHost={roomDetails.isHost} />;
   }
 
   return (
@@ -65,10 +73,10 @@ function LobbyPage() {
             <p className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100 mb-4">
               Players: {playerMap.size} / {roomDetails.roomSize}
             </p>
-            {isHost && (
+            {roomDetails.isHost && (
               <div className="flex space-x-4 mb-4">
                 <Button>Edit Config</Button>
-                <Button>Start Quiz</Button>
+                <Button onClick={handleStartQuiz}>Start Quiz</Button>
               </div>
             )}
             <div>

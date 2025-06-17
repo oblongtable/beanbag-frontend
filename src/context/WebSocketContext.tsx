@@ -13,6 +13,7 @@ interface RoomDetails {
   roomName: string;
   roomSize: number;
   players: Player[];
+  isHost: boolean; // Add isHost field
 }
 
 interface WebSocketContextType {
@@ -20,9 +21,11 @@ interface WebSocketContextType {
   isConnected: boolean;
   roomDetails: RoomDetails | null;
   userId: string | null; // Added myId to WebSocketContextType
+  currentGameState: { type: string; info: any } | null; // New: current game state
   connectAndJoinRoom: (roomCode: string, name: string) => void;
   connectAndCreateRoom: (roomName: string, roomSize: number, name: string) => void; // Added create room function
   disconnect: () => void;
+  sendMessage: (type: string, info: object) => void; // Add sendMessage
   error: string | null;
   roomClosedEvent: boolean;
   resetRoomClosedEvent: () => void;
@@ -33,9 +36,11 @@ export const WebSocketContext = createContext<WebSocketContextType>({
   isConnected: false,
   roomDetails: null,
   userId: null,
+  currentGameState: null, // Initialize
   connectAndJoinRoom: () => {},
   connectAndCreateRoom: () => {},
   disconnect: () => {},
+  sendMessage: () => {}, // Add sendMessage default
   error: null,
   roomClosedEvent: false,
   resetRoomClosedEvent: () => {},
@@ -50,6 +55,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [roomDetails, setRoomDetails] = useState<RoomDetails | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [currentGameState, setCurrentGameState] = useState<{ type: string; info: any } | null>(null); // New state
   const [error, setError] = useState<string | null>(null);
   const [roomClosedEvent, setRoomClosedEvent] = useState<boolean>(false);
 
@@ -76,7 +82,8 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           roomId: data.info.room_id, // Use room_id from the server response
           roomName: data.info.room_name,
           roomSize: data.info.room_size,
-          players: data.info.users_info
+          players: data.info.users_info,
+          isHost: false, // Initialize isHost to false, will be updated by room_status_update
         });
         setUserId(data.info.user_id); // Set myId from the server response
         // Navigation will happen in the component consuming the context
@@ -89,7 +96,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             return {
               ...prevDetails,
               players: data.users_info, // Update players list
-              host_id: data.host_id, // Include host_id from the server response
+              isHost: data.is_host, // Update isHost field
             };
           }
           return null; // Or handle the case where prevDetails is null if necessary
@@ -101,6 +108,8 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setTimeout(() => {
           disconnect();
         }, 50); // Adjust delay as needed
+      } else if (data.type === "show_title") {
+        setCurrentGameState({ type: data.type, info: data.info });
       }
       // Handle other message types here later (e.g., game state updates)
     };
@@ -184,6 +193,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
 
   const disconnect = () => {
+    setCurrentGameState(null);
     setRoomDetails(null); // Clear room details on disconnect
     setUserId(null); // Clear myId on disconnect
     setIsConnected(false);
@@ -194,9 +204,16 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setWebSocket(null); // Clear the WebSocket reference on close
   };
 
+  const sendMessage = (type: string, info: object) => {
+    if (webSocket && webSocket.readyState === WebSocket.OPEN) {
+      webSocket.send(JSON.stringify({ type, info }));
+    } else {
+      console.error("WebSocket is not connected or not open.");
+    }
+  };
 
   return (
-    <WebSocketContext.Provider value={{ webSocket, isConnected, roomDetails, userId, connectAndJoinRoom, connectAndCreateRoom, disconnect, error, roomClosedEvent, resetRoomClosedEvent }}>
+    <WebSocketContext.Provider value={{ webSocket, isConnected, roomDetails, userId, currentGameState, connectAndJoinRoom, connectAndCreateRoom, disconnect, sendMessage, error, roomClosedEvent, resetRoomClosedEvent }}>
       {children}
     </WebSocketContext.Provider>
   );
