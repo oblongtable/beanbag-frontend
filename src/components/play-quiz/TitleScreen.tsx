@@ -1,5 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button"; // Import Button
+import { useWebSocket } from "../../context/WebSocketContext"; // Import useWebSocket
 
 interface TitleScreenProps {
   title: string;
@@ -9,9 +10,10 @@ interface TitleScreenProps {
 }
 
 const TitleScreen: React.FC<TitleScreenProps> = ({ title, description, hostName, isHost }) => {
+  const { sendMessage } = useWebSocket();
+
   const handleForward = () => {
-    // Omit websocket message implementation for now
-    console.log("Forward button clicked (implementation omitted)");
+    sendMessage("quiz_forward", {});
   };
 
   return (

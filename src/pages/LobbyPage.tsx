@@ -15,20 +15,25 @@ import {  useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import Role from "@/enum/role"
 import TitleScreen from "@/components/play-quiz/TitleScreen"; // Import TitleScreen
-
+import SectionScreen from "@/components/play-quiz/SectionScreen"; // Import SectionScreen
+import PlayScreen from "@/components/play-quiz/PlayScreen"; // Import PlayScreen
+import { Answer, QuestionResultInfo } from "@/components/play-quiz/types"; // Import Answer and QuestionResultInfo types
 
 function LobbyPage() {
   const navigate = useNavigate();
   const { roomDetails, userId, sendMessage, currentGameState } = useWebSocket(); // Destructure sendMessage and currentGameState
+  const [currentQuestionAnswers, setCurrentQuestionAnswers] = useState<Answer[]>([]); // New state for current question answers
+  const [currentQuestionResult, setCurrentQuestionResult] = useState<QuestionResultInfo | null>(null); // New state for question result
+  const [previousQuestionInfo, setPreviousQuestionInfo] = useState<any>(null); // New state for previous question info
 
   // Effect to update player list when roomDetails changes
   useEffect(() => {
     if (roomDetails) {
-      const updatedPlayers = new Map<string, { name: string, avatar: string }>();
+      const updatedPlayers = new Map<number, { name: string, avatar: string }>();
       roomDetails.players.forEach((player) => {
         // Only add players who are not the host to the map
         if (player.role !== Role.CREATOR) {
-          updatedPlayers.set(player.user_id, { name: player.user_name, avatar: avatarPlaceholder });
+          updatedPlayers.set(player.user_lobby_id, { name: player.user_name, avatar: avatarPlaceholder });
         }
       });
       setPlayerMap(updatedPlayers);
@@ -39,7 +44,19 @@ function LobbyPage() {
     }
   }, [roomDetails, userId, navigate]);
 
-  const [playerMap, setPlayerMap] = useState<Map<string, { name: string, avatar: string }>>(new Map());
+  // Effect to update currentQuestionAnswers, currentQuestionResult, and previousQuestionInfo when currentGameState changes
+  useEffect(() => {
+    if (currentGameState?.type === "new_question" && currentGameState.info?.options) {
+      const answers = currentGameState.info.options.map((option: string) => ({ text: option, isCorrect: false }));
+      setCurrentQuestionAnswers(answers);
+      setCurrentQuestionResult(null); // Clear previous result
+      setPreviousQuestionInfo(currentGameState.info); // Store current question info as previous
+    } else if (currentGameState?.type === "question_result" && currentGameState.info) {
+      setCurrentQuestionResult(currentGameState.info);
+    }
+  }, [currentGameState]);
+
+  const [playerMap, setPlayerMap] = useState<Map<number, { name: string, avatar: string }>>(new Map());
 
   const handleStartQuiz = () => {
     if (roomDetails) {
@@ -57,6 +74,36 @@ function LobbyPage() {
     const hostPlayer = roomDetails.players.find(player => player.role === Role.HOST);
     const hostName = hostPlayer ? hostPlayer.user_name : "Unknown Host";
     return <TitleScreen title={currentGameState.info.title} description={currentGameState.info.description} hostName={hostName} isHost={roomDetails.isHost} />;
+  }
+
+  // Conditionally render SectionScreen if currentGameState is "show_section"
+  if (currentGameState?.type === "show_section" && roomDetails) {
+    return <SectionScreen title={currentGameState.info.title} sectionNumber={currentGameState.info.id} isHost={roomDetails.isHost} />;
+  }
+
+  // Conditionally render PlayScreen if currentGameState is "new_question" or "question_result"
+  if ((currentGameState?.type === "new_question" || currentGameState?.type === "question_result") && roomDetails) {
+    const questionText = currentGameState.type === "new_question" ? currentGameState.info.questionText : previousQuestionInfo?.questionText;
+    const timer = currentGameState.type === "new_question" ? currentGameState.info.timeLimit : 0; // Timer stops on result
+    
+    // If it's a question_result, update the answers to mark the correct one
+    let answersToPass = currentQuestionAnswers;
+    if (currentGameState.type === "question_result" && currentQuestionResult) {
+      answersToPass = currentQuestionAnswers.map((answer, index) => ({
+        ...answer,
+        isCorrect: index === currentQuestionResult.correctOptionIndex,
+      }));
+    }
+
+    return (
+      <PlayScreen
+        questionText={questionText}
+        answers={answersToPass}
+        timer={timer}
+        questionResultInfo={currentQuestionResult} // Pass the result info
+        isHost={roomDetails.isHost} // Pass isHost for the forward button
+      />
+    );
   }
 
   return (

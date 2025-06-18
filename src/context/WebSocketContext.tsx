@@ -3,9 +3,9 @@ import React, { createContext, useState, useContext } from "react";
 
 
 interface Player {
-  user_id: string;
   user_name: string;
   role: Role;
+  user_lobby_id: number
 }
 
 interface RoomDetails {
@@ -109,6 +109,12 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           disconnect();
         }, 50); // Adjust delay as needed
       } else if (data.type === "show_title") {
+        setCurrentGameState({ type: data.type, info: data.info });
+      } else if (data.type === "show_section") { // Handle show_section message
+        setCurrentGameState({ type: data.type, info: data.info });
+      } else if (data.type === "new_question") { // Handle new_question message
+        setCurrentGameState({ type: data.type, info: data.info });
+      } else if (data.type === "question_result") { // Handle question_result message
         setCurrentGameState({ type: data.type, info: data.info });
       }
       // Handle other message types here later (e.g., game state updates)
