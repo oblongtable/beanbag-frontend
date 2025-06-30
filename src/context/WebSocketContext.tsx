@@ -116,6 +116,8 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setCurrentGameState({ type: data.type, info: data.info });
       } else if (data.type === "question_result") { // Handle question_result message
         setCurrentGameState({ type: data.type, info: data.info });
+      } else if (data.type === "game_over") { // Handle game_over message
+        setCurrentGameState({ type: data.type, info: data.info });
       }
       // Handle other message types here later (e.g., game state updates)
     };

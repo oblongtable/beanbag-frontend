@@ -14,45 +14,51 @@ import avatarPlaceholder from "../assets/avatar_placeholder.png"
 import {  useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import Role from "@/enum/role"
-import TitleScreen from "@/components/play-quiz/TitleScreen"; // Import TitleScreen
-import SectionScreen from "@/components/play-quiz/SectionScreen"; // Import SectionScreen
-import PlayScreen from "@/components/play-quiz/PlayScreen"; // Import PlayScreen
-import { Answer, QuestionResultInfo } from "@/components/play-quiz/types"; // Import Answer and QuestionResultInfo types
+import TitleScreen from "@/components/play-quiz/TitleScreen";
+import SectionScreen from "@/components/play-quiz/SectionScreen";
+import PlayScreen from "@/components/play-quiz/PlayScreen";
+import ResultsScreen from "@/components/play-quiz/ResultsScreen"; // Import ResultsScreen
+import { Answer, QuestionResultInfo } from "@/components/play-quiz/types";
+
+interface LeaderboardEntry {
+  ID: string;
+  Name: string;
+  Score: number;
+}
 
 function LobbyPage() {
   const navigate = useNavigate();
-  const { roomDetails, userId, sendMessage, currentGameState } = useWebSocket(); // Destructure sendMessage and currentGameState
-  const [currentQuestionAnswers, setCurrentQuestionAnswers] = useState<Answer[]>([]); // New state for current question answers
-  const [currentQuestionResult, setCurrentQuestionResult] = useState<QuestionResultInfo | null>(null); // New state for question result
-  const [previousQuestionInfo, setPreviousQuestionInfo] = useState<any>(null); // New state for previous question info
+  const { roomDetails, userId, sendMessage, currentGameState } = useWebSocket();
+  const [currentQuestionAnswers, setCurrentQuestionAnswers] = useState<Answer[]>([]);
+  const [currentQuestionResult, setCurrentQuestionResult] = useState<QuestionResultInfo | null>(null);
+  const [previousQuestionInfo, setPreviousQuestionInfo] = useState<any>(null);
+  const [finalLeaderboard, setFinalLeaderboard] = useState<LeaderboardEntry[] | null>(null); // New state for final leaderboard
 
-  // Effect to update player list when roomDetails changes
   useEffect(() => {
     if (roomDetails) {
       const updatedPlayers = new Map<number, { name: string, avatar: string }>();
       roomDetails.players.forEach((player) => {
-        // Only add players who are not the host to the map
         if (player.role !== Role.CREATOR) {
           updatedPlayers.set(player.user_lobby_id, { name: player.user_name, avatar: avatarPlaceholder });
         }
       });
       setPlayerMap(updatedPlayers);
     } else {
-      // If roomDetails become null, it means the user has left or been disconnected
-      // Navigate to home page
       navigate("/");
     }
   }, [roomDetails, userId, navigate]);
 
-  // Effect to update currentQuestionAnswers, currentQuestionResult, and previousQuestionInfo when currentGameState changes
   useEffect(() => {
     if (currentGameState?.type === "new_question" && currentGameState.info?.options) {
       const answers = currentGameState.info.options.map((option: string) => ({ text: option, isCorrect: false }));
       setCurrentQuestionAnswers(answers);
-      setCurrentQuestionResult(null); // Clear previous result
-      setPreviousQuestionInfo(currentGameState.info); // Store current question info as previous
+      setCurrentQuestionResult(null);
+      setPreviousQuestionInfo(currentGameState.info);
+      setFinalLeaderboard(null); // Clear final leaderboard when a new question starts
     } else if (currentGameState?.type === "question_result" && currentGameState.info) {
       setCurrentQuestionResult(currentGameState.info);
+    } else if (currentGameState?.type === "game_over" && currentGameState.info?.leaderboard) {
+      setFinalLeaderboard(currentGameState.info.leaderboard);
     }
   }, [currentGameState]);
 
@@ -69,24 +75,25 @@ function LobbyPage() {
     return null;
   }
 
-  // Conditionally render TitleScreen if currentGameState is "show_title"
+  // Conditionally render ResultsScreen if currentGameState is "game_over"
+  if (currentGameState?.type === "game_over" && finalLeaderboard) {
+    return <ResultsScreen leaderboard={finalLeaderboard} />;
+  }
+
   if (currentGameState?.type === "show_title" && roomDetails) {
     const hostPlayer = roomDetails.players.find(player => player.role === Role.HOST);
     const hostName = hostPlayer ? hostPlayer.user_name : "Unknown Host";
     return <TitleScreen title={currentGameState.info.title} description={currentGameState.info.description} hostName={hostName} isHost={roomDetails.isHost} />;
   }
 
-  // Conditionally render SectionScreen if currentGameState is "show_section"
   if (currentGameState?.type === "show_section" && roomDetails) {
     return <SectionScreen title={currentGameState.info.title} sectionNumber={currentGameState.info.id} isHost={roomDetails.isHost} />;
   }
 
-  // Conditionally render PlayScreen if currentGameState is "new_question" or "question_result"
   if ((currentGameState?.type === "new_question" || currentGameState?.type === "question_result") && roomDetails) {
     const questionText = currentGameState.type === "new_question" ? currentGameState.info.questionText : previousQuestionInfo?.questionText;
-    const timer = currentGameState.type === "new_question" ? currentGameState.info.timeLimit : 0; // Timer stops on result
+    const timer = currentGameState.type === "new_question" ? currentGameState.info.timeLimit : 0;
     
-    // If it's a question_result, update the answers to mark the correct one
     let answersToPass = currentQuestionAnswers;
     if (currentGameState.type === "question_result" && currentQuestionResult) {
       answersToPass = currentQuestionAnswers.map((answer, index) => ({
@@ -100,8 +107,8 @@ function LobbyPage() {
         questionText={questionText}
         answers={answersToPass}
         timer={timer}
-        questionResultInfo={currentQuestionResult} // Pass the result info
-        isHost={roomDetails.isHost} // Pass isHost for the forward button
+        questionResultInfo={currentQuestionResult}
+        isHost={roomDetails.isHost}
       />
     );
   }
